@@ -6,3 +6,4 @@ data/processed/*
 node_modules/
 __pycache__/
 *.pyc
+site/

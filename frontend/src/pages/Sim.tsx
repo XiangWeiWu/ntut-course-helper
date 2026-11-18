@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { get, post } from "../api";
+import { STATIC, get, post } from "../api";
+import { SCENARIO_CHOICES } from "../static";
 import { BarChart, LineChart } from "../components/charts";
 
 type Agg = Record<string, { mean: number; ci95: [number, number] }>;
@@ -68,13 +69,17 @@ function View({ r }: { r: Result }) {
 export default function Sim() {
   const [rep, setRep] = useState<Report | null>(null);
   const [custom, setCustom] = useState<Result | null>(null);
-  const [p, setP] = useState({ mechanism: "ntut", seeds: 2, priority_days: 7, p_request: 0.3, p_approve: 0.8, visits_per_day: 1.5, capacity_factor: 1, servers: 8 });
+  const [p, setP] = useState({ mechanism: "ntut", seeds: 2, priority_days: 7, p_request: 0.3, p_approve: STATIC ? 0.9 : 0.8, visits_per_day: 1.5, capacity_factor: 1, servers: 8 });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   useEffect(() => { get<Report>("/api/sim/report").then(setRep).catch((e) => setErr(String(e))); }, []);
   const runSim = async () => { setBusy(true); setErr(""); try { setCustom(await post<Result>("/api/sim/run", p)); } catch (e) { setErr(String(e)); } finally { setBusy(false); } };
   const num = (k: keyof typeof p, label: string, step = 1) => (
     <label className="muted">{label} <input type="number" step={step} value={p[k] as number} onChange={(e) => setP({ ...p, [k]: +e.target.value })} style={{ width: 70 }} /></label>
+  );
+  const pick = (k: keyof typeof p, label: string, xs: number[]) => (
+    <label className="muted">{label} <select value={p[k] as number} onChange={(e) => setP({ ...p, [k]: +e.target.value })}>
+      {xs.map((x) => <option key={x} value={x}>{x}</option>)}</select></label>
   );
   const sens = rep?.sensitivity?.filter((s) => s.capacity_factor === 1 && s.cross_dept === undefined);
   const cross = rep?.sensitivity?.filter((s) => s.cross_dept !== undefined) ?? [];
@@ -141,10 +146,16 @@ export default function Sim() {
           <select value={p.mechanism} onChange={(e) => setP({ ...p, mechanism: e.target.value })}>
             <option value="ntut">北科制度</option><option value="fcfs">純搶課 FCFS</option>
           </select>
-          {p.mechanism === "ntut" && <>{num("priority_days", "本系優先天數")}{num("p_approve", "加簽同意率", 0.1)}{num("p_request", "申請加簽率", 0.1)}{num("visits_per_day", "每日登入次數", 0.5)}</>}
-          {num("capacity_factor", "名額×", 0.1)}{num("servers", "伺服器 worker")}{num("seeds", "seeds")}
-          <button className="btn primary" onClick={runSim} disabled={busy}>{busy ? "模擬中（約 10–30 秒）…" : "執行"}</button>
+          {STATIC ? <>
+            {p.mechanism === "ntut" && <>{pick("priority_days", "本系優先天數", SCENARIO_CHOICES.priority_days)}{pick("p_approve", "加簽同意率", SCENARIO_CHOICES.p_approve)}</>}
+            {pick("capacity_factor", "名額×", SCENARIO_CHOICES.capacity_factor)}
+          </> : <>
+            {p.mechanism === "ntut" && <>{num("priority_days", "本系優先天數")}{num("p_approve", "加簽同意率", 0.1)}{num("p_request", "申請加簽率", 0.1)}{num("visits_per_day", "每日登入次數", 0.5)}</>}
+            {num("capacity_factor", "名額×", 0.1)}{num("servers", "伺服器 worker")}{num("seeds", "seeds")}
+          </>}
+          <button className="btn primary" onClick={runSim} disabled={busy}>{busy ? "模擬中…" : STATIC ? "查看結果" : "執行"}</button>
         </div>
+        {STATIC && <p className="muted">線上版顯示預先算好的 21 種情境（每種 3 個 seeds）。要輸入任意參數即時模擬，請依 README 在本機執行。</p>}
         {custom && <View r={custom} />}
       </section>
     </div>

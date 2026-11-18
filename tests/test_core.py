@@ -155,3 +155,13 @@ def test_no_conflicts_in_full_ntut_sim(courses):
     cfg = SimConfig(scale=0.15, alpha=load_alpha(115, 1))
     _, st, ct = run_once(courses, cfg, 3, return_tables=True)
     assert (ct.enrolled <= (ct.capacity * 1.23).apply(np.ceil)).all()
+
+
+def test_solver_same_name_required_courses():
+    """同一門必修拆成兩個課號（同名）時不可判為無解；但不得再加選同名的其他班。"""
+    a = from_raw(_raw("A", 30)); a.name = "物理"; a.mask = mask_from_time({"mon": ["1"]})
+    b = from_raw(_raw("B", 30)); b.name = "物理"; b.mask = mask_from_time({"tue": ["1"]})
+    c = from_raw(_raw("C", 30)); c.name = "物理"; c.mask = mask_from_time({"wed": ["1"]})
+    d = from_raw(_raw("D", 30)); d.name = "化學"; d.mask = mask_from_time({"thu": ["1"]})
+    sols = solve([a, b, c, d], {"C": 5.0, "D": 1.0}, 0, 20, must=["A", "B"], k=1)
+    assert sols and set(sols[0]["courses"]) == {"A", "B", "D"}

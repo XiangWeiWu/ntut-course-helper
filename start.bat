@@ -2,6 +2,7 @@
 chcp 65001 >nul
 setlocal
 cd /d "%~dp0"
+if not exist "requirements.txt" goto notextracted
 
 set "PY="
 where py >nul 2>nul && set "PY=py -3"
@@ -29,6 +30,12 @@ exit /b 0
 echo 找不到 Python。請到 https://www.python.org/downloads/ 安裝，
 echo 安裝畫面記得勾選 "Add python.exe to PATH"，裝好後再雙擊 start.bat。
 start "" "https://www.python.org/downloads/"
+pause
+exit /b 1
+
+:notextracted
+echo 找不到專案的其他檔案。看起來是直接在 ZIP 壓縮檔裡執行了 start.bat。
+echo 請先對 ZIP 按右鍵 → 「解壓縮全部」，再到解壓縮後的資料夾雙擊 start.bat。
 pause
 exit /b 1
 

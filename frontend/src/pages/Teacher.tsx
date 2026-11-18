@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { DAY_ZH, PERIODS, get, post } from "../api";
+import { DAY_ZH, PERIODS, STATIC, get, post } from "../api";
 import { Heatmap } from "../components/charts";
 
 type Row = { id: string; name: string; capacity: number; demand: number; enrolled: number; oversub: number;
@@ -23,7 +23,8 @@ export default function Teacher() {
     try {
       const res = await post<{ capacity: number; capacitySource: string }>("/api/capacity", { course_id: r.id, capacity: v });
       setRows(rows.map((x) => x.id === r.id ? { ...x, capacity: res.capacity, capacitySource: res.capacitySource, oversub: x.demand / res.capacity } : x));
-      setMsg(`已更新「${r.name}」名額為 ${res.capacity}（下學期同課號同教師自動沿用）`);
+      setMsg(STATIC ? `已在「這台瀏覽器」把「${r.name}」名額設為 ${res.capacity}（線上版無法集中收集，其他人看不到）`
+        : `已更新「${r.name}」名額為 ${res.capacity}（下學期同課號同教師自動沿用）`);
     } catch (e) { setErr(String(e)); }
   };
   const load = () => {

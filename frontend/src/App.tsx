@@ -13,7 +13,7 @@ export default function App() {
       <header>
         <h1>北科選課助手（雛形）</h1>
         <nav>{(Object.keys(TABS) as Tab[]).map((k) => <button key={k} className={tab === k ? "on" : ""} onClick={() => setTab(k)}>{TABS[k]}</button>)}</nav>
-        <span className="muted" style={{ marginLeft: "auto" }}>資料：北科課程好朋友（gnehs/ntut-course-crawler-node）</span>
+        <span className="muted" style={{ marginLeft: "auto" }}>115-1 課程資料：北科課程好朋友（gnehs/ntut-course-crawler-node）· 非官方系統</span>
       </header>
       <main>{tab === "student" ? <Student /> : tab === "teacher" ? <Teacher /> : <Sim />}</main>
     </>

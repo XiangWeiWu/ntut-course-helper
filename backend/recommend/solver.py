@@ -1,7 +1,7 @@
 """自動排課：CP-SAT 最大化偏好分數。
 
 硬限制：不衝堂（每個節次最多一門）、學分介於 [min,max]、必選課一定排入、排除課不排。
-同名課（多個開課班）至多選一。產生 k 組解：每找到一組，就加入「不得與既有解完全相同」的 no-good cut。
+同名課（多個開課班）至多選一；必選課豁免（同課可能拆成多個課號），且排除與必選課同名的其他班。產生 k 組解：每找到一組，就加入「不得與既有解完全相同」的 no-good cut。
 """
 from __future__ import annotations
 
@@ -20,14 +20,17 @@ def solve(courses: list[Course], scores: dict[str, float], min_credit: float = 0
     x = {c.id: m.NewBoolVar(c.id) for c in cand}
     slot = defaultdict(list)
     by_name = defaultdict(list)
+    must_names = {c.name for c in cand if c.id in must}
     for c in cand:
         for s in slots_of(c.mask):
             slot[s].append(x[c.id])
-        by_name[c.name].append(x[c.id])
+        if c.id not in must:
+            by_name[c.name].append(x[c.id])
     for vs in slot.values():
         m.AddAtMostOne(vs)
-    for vs in by_name.values():
-        m.AddAtMostOne(vs)
+    for name, vs in by_name.items():
+        # 同名課至多一門；必選課不受限（同一門課可能拆成多個課號），但已必選的課名不再加選同名班
+        m.Add(sum(vs) == 0) if name in must_names else m.AddAtMostOne(vs)
     for cid in must:
         if cid in x:
             m.Add(x[cid] == 1)

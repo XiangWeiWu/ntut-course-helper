@@ -7,12 +7,17 @@ export const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 export const DAY_ZH: Record<string, string> = { sun: "日", mon: "一", tue: "二", wed: "三", thu: "四", fri: "五", sat: "六" };
 export const PERIODS = ["1", "2", "3", "4", "N", "5", "6", "7", "8", "9", "A", "B", "C", "D"];
 
+import { staticRequest } from "./static";
+export const STATIC = import.meta.env.VITE_STATIC === "1";
+
 export async function get<T>(url: string): Promise<T> {
+  if (STATIC) return staticRequest("GET", url);
   const r = await fetch(url);
   if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail ?? r.statusText);
   return r.json();
 }
 export async function post<T>(url: string, body: unknown): Promise<T> {
+  if (STATIC) return staticRequest("POST", url, body);
   const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail ?? r.statusText);
   return r.json();

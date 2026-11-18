@@ -1,4 +1,6 @@
-# 北科選課助手（雛形）＋ 先搶先贏選課代理人模擬
+# 北科選課助手（雛形）＋ 北科選課制度代理人模擬
+
+**線上版（免安裝）：https://xiangweiwu.github.io/ntut-course-helper/**
 
 資料來源：[北科課程好朋友](https://ntut-course.gnehs.net/) 的爬蟲資料
 （[gnehs/ntut-course-crawler-node](https://github.com/gnehs/ntut-course-crawler-node)，gh-pages 分支）。
@@ -61,10 +63,27 @@ scripts/fetch_data.sh 115 1 114 2 114 1 113 2 113 1 112 2 112 1 111 2 111 1 110 
 - 加簽同意率越高，外系生的損失越小。
 - 各情境效用差距都很小（零點幾個百分點），請看方向而非幅度。
 
+## 線上版（GitHub Pages）與本機版的差異
+| 功能 | 線上版 | 本機版（`start.bat` / uvicorn） |
+|---|---|---|
+| 查課、課表、衝堂檢查 | ✓ | ✓ |
+| 自動排課 | 瀏覽器內分支定界（`frontend/src/solver.ts`） | CP-SAT |
+| 教授需求預測、必修節次熱圖 | ✓ | ✓ |
+| 選課模擬 | 21 種預先算好的情境 | 任意參數即時模擬 |
+| 教師回報名額 | 只存在該瀏覽器 | 存到伺服器，所有人可見 |
+
+兩個排課求解器在 16 個案例（15 個隨機班級 + 40 門偏好課的壓力測試）上的前 3 名分數完全一致，且皆證明為最佳解。
+
+更新線上版：
+```bash
+.venv/bin/python -m scripts.export_static   # 重新匯出 frontend/public/data/
+scripts/deploy_pages.sh                      # 建置並推到 gh-pages 分支
+```
+
 ## Windows 本機執行（最簡單）
 1. 安裝 Python 3.11–3.13：https://www.python.org/downloads/ （安裝時勾選 **Add python.exe to PATH**）。
 2. 在 GitHub 頁面按綠色 **Code → Download ZIP**，解壓縮。
-3. 雙擊資料夾裡的 **`start.bat`**。第一次會自動安裝套件（1–3 分鐘），完成後瀏覽器會打開 http://localhost:8000 。
+3. 雙擊**解壓縮後**資料夾裡的 **`start.bat`**（不要在 ZIP 裡直接執行）。第一次會自動安裝套件（1–3 分鐘），完成後瀏覽器會打開 http://localhost:8000 。
 4. 要停止網站，關掉那個黑色視窗即可。
 
 不需要 Node.js（前端已預先建置在 `frontend/dist/`），也不需要下載原始資料：
