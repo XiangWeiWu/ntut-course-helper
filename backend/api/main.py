@@ -275,6 +275,31 @@ def dept_conflicts(dept: str, year: int = 115, sem: int = 1):
             for k, v in grid.items()]
 
 
+_tt_cache: dict = {}
+
+
+@app.get("/api/timetable/summary")
+def timetable_summary():
+    p = ROOT / "reports" / "timetable" / "summary.json"
+    if not p.exists():
+        raise HTTPException(404, "尚未產生，請執行 python -m backend.timetable.run_all")
+    return json.loads(p.read_text(encoding="utf-8"))
+
+
+@app.get("/api/timetable/{dept}")
+def timetable(dept: str, scenario: str = Query("A", pattern="^[AB]$"), recompute: bool = False):
+    """系所排課最佳化報告：優先讀預先算好的結果；recompute=true 時即時重算（約 1–20 秒）。"""
+    from backend.sim.engine import clean
+    from backend.timetable.check import report
+    p = ROOT / "reports" / "timetable" / f"{dept}_{scenario}.json"
+    if p.exists() and not recompute:
+        return json.loads(p.read_text(encoding="utf-8"))
+    key = (dept, scenario)
+    if recompute or key not in _tt_cache:
+        _tt_cache[key] = clean(report(dept, list(term(115, 1).values()), scenario, 20.0))
+    return _tt_cache[key]
+
+
 @app.get("/api/standards")
 def standards(year: int = 115):
     return load_standards(year)

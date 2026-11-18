@@ -67,6 +67,20 @@ def export_reports(year, sem):
     dump("sim_report.json", rep)
 
 
+def export_timetable():
+    """複製 reports/timetable/（python -m backend.timetable.run_all 的輸出）到靜態站。"""
+    import shutil
+    src = ROOT / "reports" / "timetable"
+    if not src.exists():
+        print("reports/timetable 不存在，略過")
+        return
+    dst = OUT / "timetable"
+    dst.mkdir(parents=True, exist_ok=True)
+    for f in src.glob("*.json"):
+        shutil.copy(f, dst / f.name)
+    print("timetable", len(list(dst.glob("*.json"))), "files")
+
+
 def scenario_key(mech, prio, pa, capf):
     return f"{mech}|{prio}|{pa}|{capf}"
 
@@ -94,5 +108,6 @@ if __name__ == "__main__":
     a = ap.parse_args()
     export_courses(115, 1)
     export_reports(115, 1)
+    export_timetable()
     if not a.no_sim:
         export_scenarios(115, 1)

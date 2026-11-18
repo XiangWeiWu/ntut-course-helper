@@ -122,6 +122,13 @@ async function simRun(r: any) {
 export async function staticRequest(method: "GET" | "POST", url: string, body?: any): Promise<any> {
   const u = new URL(url, "http://x");
   const p = u.searchParams;
+  const tt = u.pathname.match(/^\/api\/timetable\/(.+)$/);
+  if (method === "GET" && tt) {
+    const name = decodeURIComponent(tt[1]);
+    if (name === "summary") return load("timetable/summary.json");
+    const sc = p.get("scenario") === "B" ? "B" : "A";
+    return load(`timetable/${encodeURIComponent(`${name}_${sc}`)}.json`);
+  }
   switch (`${method} ${u.pathname}`) {
     case "GET /api/classes": return load("classes.json");
     case "GET /api/courses": return courses(p);

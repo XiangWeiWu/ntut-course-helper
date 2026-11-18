@@ -7,3 +7,7 @@ if __name__ == "__main__":
     args = [int(a) for a in sys.argv[1:]] or [115, 1]
     for y, s in zip(args[::2], args[1::2]):
         print(write_snapshot(y, s))
+    from backend.timetable import check, risk
+    risk.write_snapshot()
+    check.write_snapshot()
+    print("risk.json.gz, standards.json.gz")
