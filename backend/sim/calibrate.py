@@ -84,12 +84,12 @@ def transfer(code_alpha: dict[str, float], year: int, sem: int, default: float =
 
 def save_alpha(year, sem, alpha):
     CAL_DIR.mkdir(parents=True, exist_ok=True)
-    (CAL_DIR / f"alpha_{year}_{sem}.json").write_text(json.dumps(alpha))
+    (CAL_DIR / f"alpha_{year}_{sem}.json").write_text(json.dumps(alpha), encoding="utf-8")
 
 
 def load_alpha(year, sem):
     p = CAL_DIR / f"alpha_{year}_{sem}.json"
-    return json.loads(p.read_text()) if p.exists() else None
+    return json.loads(p.read_text(encoding="utf-8")) if p.exists() else None
 
 
 if __name__ == "__main__":

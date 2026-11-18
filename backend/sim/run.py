@@ -35,7 +35,7 @@ def main():
     t = time.time()
     r = run(cfg)
     Path(a.out).parent.mkdir(parents=True, exist_ok=True)
-    Path(a.out).write_text(json.dumps(r, ensure_ascii=False, indent=1))
+    Path(a.out).write_text(json.dumps(r, ensure_ascii=False, indent=1), encoding="utf-8")
     print(json.dumps(r["aggregate"], ensure_ascii=False, indent=1))
     print(f"calibrated={cfg.alpha is not None}  {time.time() - t:.1f}s → {a.out}")
 

@@ -61,15 +61,16 @@ scripts/fetch_data.sh 115 1 114 2 114 1 113 2 113 1 112 2 112 1 111 2 111 1 110 
 - 加簽同意率越高，外系生的損失越小。
 - 各情境效用差距都很小（零點幾個百分點），請看方向而非幅度。
 
-## Windows 本機執行
-```powershell
-py -m venv .venv
-.venv\Scripts\pip install fastapi "uvicorn[standard]" ortools numpy pandas pytest httpx
-cd frontend; npm install; npm run build; cd ..
-.venv\Scripts\uvicorn backend.api.main:app --port 8000
-```
-瀏覽器開 http://localhost:8000。`reports/` 已附預先算好的結果；需要重跑模擬時，
-先用 Git Bash 執行 `scripts/fetch_data.sh`（需安裝 Git for Windows）。
+## Windows 本機執行（最簡單）
+1. 安裝 Python 3.11–3.13：https://www.python.org/downloads/ （安裝時勾選 **Add python.exe to PATH**）。
+2. 在 GitHub 頁面按綠色 **Code → Download ZIP**，解壓縮。
+3. 雙擊資料夾裡的 **`start.bat`**。第一次會自動安裝套件（1–3 分鐘），完成後瀏覽器會打開 http://localhost:8000 。
+4. 要停止網站，關掉那個黑色視窗即可。
+
+不需要 Node.js（前端已預先建置在 `frontend/dist/`），也不需要下載原始資料：
+`data/snapshot/115_1.json.gz` 內含 115-1 全部課程（已推估名額），`reports/` 內含預先算好的模擬結果。
+只有要重新校準或重跑模擬時，才需要用 Git Bash 執行 `scripts/fetch_data.sh` 取得完整資料，
+之後 `python -m scripts.build_snapshot 115 1` 可更新快照。
 
 ## 下一步
 - 用加退選期間的時間序列（若可取得）估計未截斷需求，改善競爭程度的低估。

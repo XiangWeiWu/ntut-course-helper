@@ -57,8 +57,8 @@ def validate(train=(114, 1), test=(115, 1), seeds=3):
     }
     out = ROOT / "reports" / "validation.json"
     out.parent.mkdir(exist_ok=True)
-    out.write_text(json.dumps(rep, ensure_ascii=False, indent=1))
-    df.to_csv(ROOT / "reports" / "validation_courses.csv", index=False)
+    out.write_text(json.dumps(rep, ensure_ascii=False, indent=1), encoding="utf-8")
+    df.to_csv(ROOT / "reports" / "validation_courses.csv", index=False, encoding="utf-8-sig")
     print(json.dumps(rep, ensure_ascii=False, indent=1))
     return rep
 

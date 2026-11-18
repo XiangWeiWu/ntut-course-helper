@@ -47,7 +47,7 @@ def grid(year=115, sem=1, seeds=3):
                      "addsigned": round(sum(r["server"]["seats_addsigned"] for r in acc) / len(acc), 1),
                      "released": round(sum(r["server"]["seats_released"] for r in acc) / len(acc), 1)})
         print(rows[-1])
-    (ROOT / "reports" / "sensitivity.json").write_text(json.dumps(clean(rows), ensure_ascii=False, indent=1))
+    (ROOT / "reports" / "sensitivity.json").write_text(json.dumps(clean(rows), ensure_ascii=False, indent=1), encoding="utf-8")
     return rows
 
 

@@ -26,15 +26,55 @@ HOME_CLASS_RE = re.compile(r"^(?P<dept>[^\d（(]+?)(?P<grade>[一二三四五])(
 GRADE_NUM = {"一": 1, "二": 2, "三": 3, "四": 4, "五": 5}
 
 
+SNAPSHOT = ROOT / "data" / "snapshot"
+
+
 def available_terms() -> dict[str, list[int]]:
-    return json.loads((RAW / "main.json").read_text())
+    p = RAW / "main.json"
+    if p.exists():
+        return json.loads(p.read_text(encoding="utf-8"))
+    out: dict[str, list[int]] = {}
+    for f in sorted(SNAPSHOT.glob("*_*.json.gz")):
+        y, s = f.name.split(".")[0].split("_")
+        out.setdefault(y, []).append(int(s))
+    return out
+
+
+def write_snapshot(year: int, sem: int) -> Path:
+    """把已推估名額的課程存成壓縮快照（約 1MB），讓沒有 data/raw 的電腦也能執行網站。"""
+    import dataclasses
+    import gzip
+    courses = load_term(year, sem)
+    SNAPSHOT.mkdir(parents=True, exist_ok=True)
+    p = SNAPSHOT / f"{year}_{sem}.json.gz"
+    payload = {"meta": CAPACITY_META.get((year, sem), {}),
+               "courses": [dataclasses.asdict(c) for c in courses]}
+    with gzip.open(p, "wt", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, separators=(",", ":"))
+    return p
+
+
+def _load_snapshot(year: int, sem: int) -> list[Course] | None:
+    import gzip
+    p = SNAPSHOT / f"{year}_{sem}.json.gz"
+    if not p.exists():
+        return None
+    with gzip.open(p, "rt", encoding="utf-8") as f:
+        payload = json.load(f)
+    courses = [Course(**d) for d in payload["courses"]]
+    overrides = load_overrides()                    # 教師回報仍優先
+    for c in courses:
+        if course_key(c) in overrides:
+            c.capacity, c.capacity_source = overrides[course_key(c)], "teacher"
+    CAPACITY_META[(year, sem)] = {**payload.get("meta", {}), "source": "snapshot"}
+    return courses
 
 
 def _raw_courses(year: int, sem: int) -> list[dict]:
     p = RAW / str(year) / str(sem) / "main.json"
     if not p.exists():
         raise FileNotFoundError(f"{p} 不存在；請先執行 scripts/fetch_data.sh {year} {sem}")
-    return json.loads(p.read_text())
+    return json.loads(p.read_text(encoding="utf-8"))
 
 
 def parse_home_class(name: str):
@@ -73,7 +113,7 @@ def course_key(c: Course) -> str:
 
 def load_overrides() -> dict[str, int]:
     try:
-        return {k: int(v["capacity"]) for k, v in json.loads(OVERRIDES.read_text()).items()}
+        return {k: int(v["capacity"]) for k, v in json.loads(OVERRIDES.read_text(encoding="utf-8")).items()}
     except (FileNotFoundError, ValueError, KeyError, TypeError):
         return {}
 
@@ -81,12 +121,12 @@ def load_overrides() -> dict[str, int]:
 def save_override(key: str, capacity: int, note: str = "") -> None:
     OVERRIDES.parent.mkdir(parents=True, exist_ok=True)
     try:
-        d = json.loads(OVERRIDES.read_text())
+        d = json.loads(OVERRIDES.read_text(encoding="utf-8"))
     except (FileNotFoundError, ValueError):
         d = {}
     import datetime
     d[key] = {"capacity": int(capacity), "note": note, "updated": datetime.date.today().isoformat()}
-    OVERRIDES.write_text(json.dumps(d, ensure_ascii=False, indent=1))
+    OVERRIDES.write_text(json.dumps(d, ensure_ascii=False, indent=1), encoding="utf-8")
     load_term.cache_clear()
 
 
@@ -162,6 +202,10 @@ def long_history(year: int, sem: int, years: int = 5) -> dict[str, list[int]]:
 
 @lru_cache(maxsize=8)
 def load_term(year: int, sem: int, history_terms: int = 2) -> tuple[Course, ...]:
+    if not (RAW / str(year) / str(sem) / "main.json").exists():
+        snap = _load_snapshot(year, sem)
+        if snap is not None:
+            return tuple(snap)
     courses = [from_raw(x) for x in _raw_courses(year, sem)]
     hist = []
     for y, s in _prev_terms(year, sem, history_terms):
@@ -179,4 +223,4 @@ CAPACITY_META: dict[tuple[int, int], dict] = {}
 @lru_cache(maxsize=4)
 def load_standards(year: int) -> dict:
     p = RAW / str(year) / "standard.json"
-    return json.loads(p.read_text()) if p.exists() else {}
+    return json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}

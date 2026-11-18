@@ -4,6 +4,5 @@ data/overrides/
 data/processed/*
 !data/processed/alpha_*.json
 node_modules/
-frontend/dist/
 __pycache__/
 *.pyc

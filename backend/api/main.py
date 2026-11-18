@@ -154,7 +154,7 @@ def _report(name):
     p = ROOT / "reports" / name
     if not p.exists():
         raise HTTPException(404, f"{name} 尚未產生，請先執行模擬（見 README）")
-    return json.loads(p.read_text())
+    return json.loads(p.read_text(encoding="utf-8"))
 
 
 @app.get("/api/sim/report")
