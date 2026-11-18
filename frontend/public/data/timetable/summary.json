@@ -4,14 +4,16 @@
   "A": {
    "status": "OPTIMAL",
    "retake_before": 56.99,
-   "retake_after": 33.69,
+   "retake_after": 33.37,
    "pairs_before": 34,
    "pairs_after": 24,
-   "moves": 7,
-   "model": 39.03,
-   "checker": 39.04,
+   "moves": 8,
+   "model": 47.31,
+   "checker": 47.32,
    "new_conflicts": 0,
-   "missing": 5
+   "missing": 5,
+   "load_before": 34,
+   "load_after": 26
   },
   "B": {
    "status": "OPTIMAL",
@@ -20,10 +22,12 @@
    "pairs_before": 34,
    "pairs_after": 20,
    "moves": 11,
-   "model": 34.75,
-   "checker": 34.75,
+   "model": 42.55,
+   "checker": 42.55,
    "new_conflicts": 0,
-   "missing": 5
+   "missing": 5,
+   "load_before": 34,
+   "load_after": 26
   }
  },
  {
@@ -35,22 +39,26 @@
    "pairs_before": 16,
    "pairs_after": 11,
    "moves": 3,
-   "model": 13.75,
-   "checker": 13.76,
+   "model": 15.55,
+   "checker": 15.56,
    "new_conflicts": 0,
-   "missing": 2
+   "missing": 2,
+   "load_before": 6,
+   "load_after": 6
   },
   "B": {
    "status": "OPTIMAL",
    "retake_before": 26.51,
-   "retake_after": 9.61,
+   "retake_after": 9.07,
    "pairs_before": 16,
    "pairs_after": 10,
-   "moves": 4,
-   "model": 12.55,
-   "checker": 12.56,
+   "moves": 6,
+   "model": 14.6,
+   "checker": 14.62,
    "new_conflicts": 0,
-   "missing": 2
+   "missing": 2,
+   "load_before": 6,
+   "load_after": 5
   }
  },
  {
@@ -58,26 +66,30 @@
   "A": {
    "status": "OPTIMAL",
    "retake_before": 51.18,
-   "retake_after": 8.43,
+   "retake_after": 9.59,
    "pairs_before": 40,
-   "pairs_after": 17,
+   "pairs_after": 19,
    "moves": 9,
-   "model": 12.62,
-   "checker": 12.63,
+   "model": 15.14,
+   "checker": 15.14,
    "new_conflicts": 0,
-   "missing": 3
+   "missing": 3,
+   "load_before": 14,
+   "load_after": 6
   },
   "B": {
    "status": "FEASIBLE",
    "retake_before": 51.18,
-   "retake_after": 8.16,
+   "retake_after": 8.26,
    "pairs_before": 40,
-   "pairs_after": 15,
-   "moves": 11,
-   "model": 12.51,
-   "checker": 12.51,
+   "pairs_after": 16,
+   "moves": 14,
+   "model": 14.41,
+   "checker": 14.41,
    "new_conflicts": 0,
-   "missing": 3
+   "missing": 3,
+   "load_before": 14,
+   "load_after": 4
   }
  },
  {
@@ -85,26 +97,30 @@
   "A": {
    "status": "FEASIBLE",
    "retake_before": 61.47,
-   "retake_after": 22.47,
+   "retake_after": 22.88,
    "pairs_before": 36,
-   "pairs_after": 14,
-   "moves": 15,
-   "model": 28.53,
-   "checker": 28.52,
+   "pairs_after": 15,
+   "moves": 14,
+   "model": 30.35,
+   "checker": 30.33,
    "new_conflicts": 0,
-   "missing": 2
+   "missing": 2,
+   "load_before": 15,
+   "load_after": 5
   },
   "B": {
    "status": "FEASIBLE",
    "retake_before": 61.47,
-   "retake_after": 13.75,
+   "retake_after": 13.82,
    "pairs_before": 36,
-   "pairs_after": 10,
-   "moves": 18,
-   "model": 20.82,
-   "checker": 20.8,
+   "pairs_after": 11,
+   "moves": 19,
+   "model": 22.04,
+   "checker": 22.02,
    "new_conflicts": 0,
-   "missing": 2
+   "missing": 2,
+   "load_before": 15,
+   "load_after": 1
   }
  },
  {
@@ -115,11 +131,13 @@
    "retake_after": 0.0,
    "pairs_before": 0,
    "pairs_after": 0,
-   "moves": 0,
-   "model": 0.5,
-   "checker": 0.5,
+   "moves": 2,
+   "model": 6.8,
+   "checker": 6.8,
    "new_conflicts": 0,
-   "missing": 0
+   "missing": 0,
+   "load_before": 25,
+   "load_after": 19
   },
   "B": {
    "status": "OPTIMAL",
@@ -127,11 +145,13 @@
    "retake_after": 0.0,
    "pairs_before": 0,
    "pairs_after": 0,
-   "moves": 0,
-   "model": 0.55,
-   "checker": 0.55,
+   "moves": 4,
+   "model": 6.35,
+   "checker": 6.35,
    "new_conflicts": 0,
-   "missing": 0
+   "missing": 0,
+   "load_before": 25,
+   "load_after": 13
   }
  },
  {
@@ -139,26 +159,30 @@
   "A": {
    "status": "FEASIBLE",
    "retake_before": 294.54,
-   "retake_after": 96.79,
+   "retake_after": 109.84,
    "pairs_before": 309,
-   "pairs_after": 166,
-   "moves": 42,
-   "model": 119.63,
-   "checker": 119.69,
+   "pairs_after": 176,
+   "moves": 38,
+   "model": 139.21,
+   "checker": 139.29,
    "new_conflicts": 0,
-   "missing": 0
+   "missing": 0,
+   "load_before": 25,
+   "load_after": 18
   },
   "B": {
    "status": "FEASIBLE",
    "retake_before": 294.54,
-   "retake_after": 77.71,
+   "retake_after": 88.56,
    "pairs_before": 309,
-   "pairs_after": 143,
-   "moves": 49,
-   "model": 102.0,
-   "checker": 102.06,
+   "pairs_after": 168,
+   "moves": 51,
+   "model": 127.51,
+   "checker": 127.56,
    "new_conflicts": 0,
-   "missing": 0
+   "missing": 0,
+   "load_before": 25,
+   "load_after": 31
   }
  },
  {
@@ -170,10 +194,12 @@
    "pairs_before": 0,
    "pairs_after": 0,
    "moves": 0,
-   "model": 0.0,
-   "checker": 0.0,
+   "model": 0.3,
+   "checker": 0.3,
    "new_conflicts": 0,
-   "missing": 1
+   "missing": 1,
+   "load_before": 1,
+   "load_after": 1
   },
   "B": {
    "status": "OPTIMAL",
@@ -182,10 +208,12 @@
    "pairs_before": 0,
    "pairs_after": 0,
    "moves": 0,
-   "model": 0.0,
-   "checker": 0.0,
+   "model": 0.3,
+   "checker": 0.3,
    "new_conflicts": 0,
-   "missing": 1
+   "missing": 1,
+   "load_before": 1,
+   "load_after": 1
   }
  },
  {
@@ -193,26 +221,30 @@
   "A": {
    "status": "OPTIMAL",
    "retake_before": 16.8,
-   "retake_after": 8.85,
+   "retake_after": 9.39,
    "pairs_before": 13,
-   "pairs_after": 8,
+   "pairs_after": 10,
    "moves": 5,
-   "model": 10.24,
-   "checker": 10.25,
+   "model": 12.18,
+   "checker": 12.19,
    "new_conflicts": 0,
-   "missing": 2
+   "missing": 2,
+   "load_before": 9,
+   "load_after": 5
   },
   "B": {
    "status": "OPTIMAL",
    "retake_before": 16.8,
-   "retake_after": 5.35,
+   "retake_after": 4.7,
    "pairs_before": 13,
-   "pairs_after": 7,
-   "moves": 7,
-   "model": 7.19,
-   "checker": 7.2,
+   "pairs_after": 6,
+   "moves": 10,
+   "model": 8.0,
+   "checker": 8.0,
    "new_conflicts": 0,
-   "missing": 2
+   "missing": 2,
+   "load_before": 9,
+   "load_after": 1
   }
  },
  {
@@ -220,26 +252,30 @@
   "A": {
    "status": "FEASIBLE",
    "retake_before": 123.75,
-   "retake_after": 40.57,
+   "retake_after": 44.34,
    "pairs_before": 99,
-   "pairs_after": 55,
-   "moves": 23,
-   "model": 50.77,
-   "checker": 50.77,
+   "pairs_after": 63,
+   "moves": 24,
+   "model": 62.07,
+   "checker": 62.09,
    "new_conflicts": 0,
-   "missing": 1
+   "missing": 1,
+   "load_before": 40,
+   "load_after": 20
   },
   "B": {
    "status": "FEASIBLE",
    "retake_before": 123.75,
-   "retake_after": 30.56,
+   "retake_after": 34.26,
    "pairs_before": 99,
-   "pairs_after": 44,
-   "moves": 33,
-   "model": 47.14,
-   "checker": 47.16,
+   "pairs_after": 50,
+   "moves": 32,
+   "model": 53.41,
+   "checker": 53.41,
    "new_conflicts": 0,
-   "missing": 1
+   "missing": 1,
+   "load_before": 40,
+   "load_after": 19
   }
  },
  {
@@ -250,11 +286,13 @@
    "retake_after": 0.0,
    "pairs_before": 0,
    "pairs_after": 0,
-   "moves": 0,
-   "model": 0.5,
-   "checker": 0.5,
+   "moves": 2,
+   "model": 2.0,
+   "checker": 2.0,
    "new_conflicts": 0,
-   "missing": 0
+   "missing": 0,
+   "load_before": 9,
+   "load_after": 3
   },
   "B": {
    "status": "OPTIMAL",
@@ -262,11 +300,13 @@
    "retake_after": 0.0,
    "pairs_before": 0,
    "pairs_after": 0,
-   "moves": 0,
-   "model": 0.65,
-   "checker": 0.65,
+   "moves": 5,
+   "model": 1.8,
+   "checker": 1.8,
    "new_conflicts": 0,
-   "missing": 0
+   "missing": 0,
+   "load_before": 9,
+   "load_after": 0
   }
  },
  {
@@ -274,26 +314,30 @@
   "A": {
    "status": "FEASIBLE",
    "retake_before": 196.27,
-   "retake_after": 53.74,
+   "retake_after": 52.02,
    "pairs_before": 90,
-   "pairs_after": 37,
-   "moves": 17,
-   "model": 62.08,
-   "checker": 62.09,
+   "pairs_after": 36,
+   "moves": 19,
+   "model": 74.16,
+   "checker": 74.17,
    "new_conflicts": 0,
-   "missing": 2
+   "missing": 2,
+   "load_before": 44,
+   "load_after": 39
   },
   "B": {
    "status": "FEASIBLE",
    "retake_before": 196.27,
-   "retake_after": 26.64,
+   "retake_after": 28.36,
    "pairs_before": 90,
-   "pairs_after": 31,
-   "moves": 30,
-   "model": 43.04,
-   "checker": 43.04,
+   "pairs_after": 36,
+   "moves": 29,
+   "model": 51.02,
+   "checker": 51.01,
    "new_conflicts": 0,
-   "missing": 2
+   "missing": 2,
+   "load_before": 44,
+   "load_after": 23
   }
  },
  {
@@ -301,26 +345,30 @@
   "A": {
    "status": "FEASIBLE",
    "retake_before": 133.55,
-   "retake_after": 85.74,
+   "retake_after": 90.93,
    "pairs_before": 69,
-   "pairs_after": 45,
-   "moves": 15,
-   "model": 94.57,
-   "checker": 94.59,
+   "pairs_after": 48,
+   "moves": 17,
+   "model": 115.31,
+   "checker": 115.33,
    "new_conflicts": 0,
-   "missing": 1
+   "missing": 1,
+   "load_before": 57,
+   "load_after": 47
   },
   "B": {
    "status": "FEASIBLE",
    "retake_before": 133.55,
-   "retake_after": 75.96,
+   "retake_after": 80.5,
    "pairs_before": 69,
-   "pairs_after": 42,
-   "moves": 17,
-   "model": 88.98,
-   "checker": 89.01,
+   "pairs_after": 46,
+   "moves": 21,
+   "model": 104.44,
+   "checker": 104.45,
    "new_conflicts": 0,
-   "missing": 1
+   "missing": 1,
+   "load_before": 57,
+   "load_after": 45
   }
  },
  {
@@ -328,26 +376,30 @@
   "A": {
    "status": "OPTIMAL",
    "retake_before": 75.03,
-   "retake_after": 43.83,
+   "retake_after": 43.4,
    "pairs_before": 43,
-   "pairs_after": 22,
+   "pairs_after": 27,
    "moves": 15,
-   "model": 50.1,
-   "checker": 50.13,
+   "model": 59.37,
+   "checker": 59.4,
    "new_conflicts": 0,
-   "missing": 3
+   "missing": 3,
+   "load_before": 36,
+   "load_after": 28
   },
   "B": {
-   "status": "OPTIMAL",
+   "status": "FEASIBLE",
    "retake_before": 75.03,
-   "retake_after": 41.13,
+   "retake_after": 42.37,
    "pairs_before": 43,
-   "pairs_after": 24,
-   "moves": 16,
-   "model": 49.85,
-   "checker": 49.88,
+   "pairs_after": 25,
+   "moves": 17,
+   "model": 58.1,
+   "checker": 58.12,
    "new_conflicts": 0,
-   "missing": 3
+   "missing": 3,
+   "load_before": 36,
+   "load_after": 25
   }
  },
  {
@@ -359,22 +411,26 @@
    "pairs_before": 26,
    "pairs_after": 9,
    "moves": 14,
-   "model": 19.63,
-   "checker": 19.63,
+   "model": 21.23,
+   "checker": 21.23,
    "new_conflicts": 0,
-   "missing": 1
+   "missing": 1,
+   "load_before": 14,
+   "load_after": 4
   },
   "B": {
    "status": "FEASIBLE",
    "retake_before": 58.54,
-   "retake_after": 9.53,
+   "retake_after": 9.29,
    "pairs_before": 26,
-   "pairs_after": 11,
-   "moves": 16,
-   "model": 17.79,
-   "checker": 17.78,
+   "pairs_after": 7,
+   "moves": 20,
+   "model": 18.29,
+   "checker": 18.29,
    "new_conflicts": 0,
-   "missing": 1
+   "missing": 1,
+   "load_before": 14,
+   "load_after": 2
   }
  },
  {
@@ -382,26 +438,30 @@
   "A": {
    "status": "FEASIBLE",
    "retake_before": 131.4,
-   "retake_after": 58.01,
+   "retake_after": 61.13,
    "pairs_before": 85,
-   "pairs_after": 54,
+   "pairs_after": 59,
    "moves": 27,
-   "model": 71.74,
-   "checker": 71.76,
+   "model": 83.22,
+   "checker": 83.23,
    "new_conflicts": 0,
-   "missing": 0
+   "missing": 0,
+   "load_before": 48,
+   "load_after": 26
   },
   "B": {
    "status": "FEASIBLE",
    "retake_before": 131.4,
-   "retake_after": 58.26,
+   "retake_after": 64.88,
    "pairs_before": 85,
-   "pairs_after": 55,
-   "moves": 36,
-   "model": 73.66,
-   "checker": 73.66,
+   "pairs_after": 54,
+   "moves": 27,
+   "model": 83.49,
+   "checker": 83.48,
    "new_conflicts": 0,
-   "missing": 0
+   "missing": 0,
+   "load_before": 48,
+   "load_after": 24
   }
  },
  {
@@ -409,26 +469,30 @@
   "A": {
    "status": "FEASIBLE",
    "retake_before": 144.49,
-   "retake_after": 18.73,
+   "retake_after": 18.79,
    "pairs_before": 120,
-   "pairs_after": 45,
-   "moves": 30,
-   "model": 30.79,
-   "checker": 30.73,
+   "pairs_after": 44,
+   "moves": 31,
+   "model": 35.73,
+   "checker": 35.69,
    "new_conflicts": 0,
-   "missing": 0
+   "missing": 0,
+   "load_before": 37,
+   "load_after": 14
   },
   "B": {
    "status": "FEASIBLE",
    "retake_before": 144.49,
-   "retake_after": 10.47,
+   "retake_after": 19.53,
    "pairs_before": 120,
-   "pairs_after": 37,
-   "moves": 39,
-   "model": 26.34,
-   "checker": 26.27,
+   "pairs_after": 31,
+   "moves": 40,
+   "model": 36.94,
+   "checker": 36.93,
    "new_conflicts": 0,
-   "missing": 0
+   "missing": 0,
+   "load_before": 37,
+   "load_after": 5
   }
  },
  {
@@ -436,26 +500,30 @@
   "A": {
    "status": "FEASIBLE",
    "retake_before": 150.44,
-   "retake_after": 41.24,
+   "retake_after": 37.92,
    "pairs_before": 137,
-   "pairs_after": 75,
-   "moves": 25,
-   "model": 51.94,
-   "checker": 51.99,
+   "pairs_after": 71,
+   "moves": 27,
+   "model": 61.78,
+   "checker": 61.82,
    "new_conflicts": 0,
-   "missing": 1
+   "missing": 1,
+   "load_before": 57,
+   "load_after": 29
   },
   "B": {
    "status": "FEASIBLE",
    "retake_before": 150.44,
-   "retake_after": 26.55,
+   "retake_after": 33.23,
    "pairs_before": 137,
-   "pairs_after": 55,
-   "moves": 32,
-   "model": 44.72,
-   "checker": 44.75,
+   "pairs_after": 64,
+   "moves": 30,
+   "model": 56.36,
+   "checker": 56.38,
    "new_conflicts": 0,
-   "missing": 1
+   "missing": 1,
+   "load_before": 57,
+   "load_after": 15
   }
  },
  {
@@ -467,22 +535,26 @@
    "pairs_before": 15,
    "pairs_after": 9,
    "moves": 5,
-   "model": 14.73,
-   "checker": 14.74,
+   "model": 21.23,
+   "checker": 21.23,
    "new_conflicts": 0,
-   "missing": 3
+   "missing": 3,
+   "load_before": 28,
+   "load_after": 21
   },
   "B": {
-   "status": "OPTIMAL",
+   "status": "FEASIBLE",
    "retake_before": 24.91,
-   "retake_after": 7.92,
+   "retake_after": 8.56,
    "pairs_before": 15,
-   "pairs_after": 8,
-   "moves": 7,
-   "model": 9.53,
-   "checker": 9.52,
+   "pairs_after": 10,
+   "moves": 6,
+   "model": 15.42,
+   "checker": 15.41,
    "new_conflicts": 0,
-   "missing": 3
+   "missing": 3,
+   "load_before": 28,
+   "load_after": 14
   }
  },
  {
@@ -494,22 +566,26 @@
    "pairs_before": 23,
    "pairs_after": 10,
    "moves": 10,
-   "model": 13.75,
-   "checker": 13.75,
+   "model": 15.55,
+   "checker": 15.55,
    "new_conflicts": 0,
-   "missing": 1
+   "missing": 1,
+   "load_before": 6,
+   "load_after": 6
   },
   "B": {
    "status": "OPTIMAL",
    "retake_before": 30.4,
-   "retake_after": 7.66,
+   "retake_after": 8.04,
    "pairs_before": 23,
-   "pairs_after": 6,
+   "pairs_after": 10,
    "moves": 11,
-   "model": 12.45,
-   "checker": 12.46,
+   "model": 13.36,
+   "checker": 13.39,
    "new_conflicts": 0,
-   "missing": 1
+   "missing": 1,
+   "load_before": 6,
+   "load_after": 2
   }
  },
  {
@@ -517,26 +593,30 @@
   "A": {
    "status": "OPTIMAL",
    "retake_before": 47.83,
-   "retake_after": 13.25,
+   "retake_after": 13.41,
    "pairs_before": 35,
    "pairs_after": 19,
-   "moves": 10,
-   "model": 18.1,
-   "checker": 18.1,
+   "moves": 11,
+   "model": 21.11,
+   "checker": 21.11,
    "new_conflicts": 0,
-   "missing": 1
+   "missing": 1,
+   "load_before": 15,
+   "load_after": 9
   },
   "B": {
    "status": "FEASIBLE",
    "retake_before": 47.83,
-   "retake_after": 9.38,
+   "retake_after": 9.0,
    "pairs_before": 35,
    "pairs_after": 16,
-   "moves": 15,
-   "model": 15.31,
-   "checker": 15.33,
+   "moves": 17,
+   "model": 17.13,
+   "checker": 17.15,
    "new_conflicts": 0,
-   "missing": 1
+   "missing": 1,
+   "load_before": 15,
+   "load_after": 4
   }
  },
  {
@@ -544,26 +624,30 @@
   "A": {
    "status": "FEASIBLE",
    "retake_before": 103.4,
-   "retake_after": 25.58,
+   "retake_after": 25.22,
    "pairs_before": 62,
-   "pairs_after": 20,
-   "moves": 16,
-   "model": 32.23,
-   "checker": 32.23,
+   "pairs_after": 18,
+   "moves": 20,
+   "model": 35.22,
+   "checker": 35.22,
    "new_conflicts": 0,
-   "missing": 3
+   "missing": 3,
+   "load_before": 25,
+   "load_after": 7
   },
   "B": {
    "status": "FEASIBLE",
    "retake_before": 103.4,
-   "retake_after": 23.61,
+   "retake_after": 26.09,
    "pairs_before": 62,
    "pairs_after": 22,
-   "moves": 27,
-   "model": 32.35,
-   "checker": 32.36,
+   "moves": 23,
+   "model": 38.11,
+   "checker": 38.14,
    "new_conflicts": 0,
-   "missing": 3
+   "missing": 3,
+   "load_before": 25,
+   "load_after": 6
   }
  },
  {
@@ -575,22 +659,26 @@
    "pairs_before": 42,
    "pairs_after": 20,
    "moves": 12,
-   "model": 25.51,
-   "checker": 25.53,
+   "model": 30.06,
+   "checker": 30.08,
    "new_conflicts": 0,
-   "missing": 2
+   "missing": 2,
+   "load_before": 25,
+   "load_after": 15
   },
   "B": {
    "status": "FEASIBLE",
    "retake_before": 55.55,
-   "retake_after": 20.57,
+   "retake_after": 20.74,
    "pairs_before": 42,
-   "pairs_after": 18,
-   "moves": 14,
-   "model": 24.64,
-   "checker": 24.67,
+   "pairs_after": 20,
+   "moves": 15,
+   "model": 27.7,
+   "checker": 27.74,
    "new_conflicts": 0,
-   "missing": 2
+   "missing": 2,
+   "load_before": 25,
+   "load_after": 8
   }
  },
  {
@@ -598,26 +686,30 @@
   "A": {
    "status": "OPTIMAL",
    "retake_before": 48.47,
-   "retake_after": 26.03,
+   "retake_after": 27.42,
    "pairs_before": 30,
-   "pairs_after": 16,
-   "moves": 10,
-   "model": 30.08,
-   "checker": 30.08,
+   "pairs_after": 17,
+   "moves": 9,
+   "model": 35.93,
+   "checker": 35.92,
    "new_conflicts": 0,
-   "missing": 1
+   "missing": 1,
+   "load_before": 28,
+   "load_after": 15
   },
   "B": {
    "status": "OPTIMAL",
    "retake_before": 48.47,
-   "retake_after": 17.35,
+   "retake_after": 18.2,
    "pairs_before": 30,
-   "pairs_after": 13,
-   "moves": 13,
-   "model": 22.55,
-   "checker": 22.55,
+   "pairs_after": 14,
+   "moves": 12,
+   "model": 26.95,
+   "checker": 26.95,
    "new_conflicts": 0,
-   "missing": 1
+   "missing": 1,
+   "load_before": 28,
+   "load_after": 12
   }
  },
  {
@@ -625,26 +717,30 @@
   "A": {
    "status": "OPTIMAL",
    "retake_before": 39.72,
-   "retake_after": 15.63,
+   "retake_after": 15.7,
    "pairs_before": 37,
-   "pairs_after": 21,
-   "moves": 9,
-   "model": 19.49,
-   "checker": 19.48,
+   "pairs_after": 22,
+   "moves": 10,
+   "model": 25.21,
+   "checker": 25.2,
    "new_conflicts": 0,
-   "missing": 3
+   "missing": 3,
+   "load_before": 29,
+   "load_after": 17
   },
   "B": {
-   "status": "OPTIMAL",
+   "status": "FEASIBLE",
    "retake_before": 39.72,
-   "retake_after": 12.9,
+   "retake_after": 12.85,
    "pairs_before": 37,
-   "pairs_after": 16,
-   "moves": 13,
-   "model": 17.81,
-   "checker": 17.8,
+   "pairs_after": 17,
+   "moves": 15,
+   "model": 21.41,
+   "checker": 21.4,
    "new_conflicts": 0,
-   "missing": 3
+   "missing": 3,
+   "load_before": 29,
+   "load_after": 8
   }
  },
  {
@@ -652,26 +748,30 @@
   "A": {
    "status": "FEASIBLE",
    "retake_before": 128.81,
-   "retake_after": 40.58,
+   "retake_after": 41.71,
    "pairs_before": 158,
-   "pairs_after": 103,
-   "moves": 26,
-   "model": 53.3,
-   "checker": 53.28,
+   "pairs_after": 108,
+   "moves": 27,
+   "model": 66.52,
+   "checker": 66.51,
    "new_conflicts": 0,
-   "missing": 1
+   "missing": 1,
+   "load_before": 75,
+   "load_after": 38
   },
   "B": {
    "status": "FEASIBLE",
    "retake_before": 128.81,
-   "retake_after": 31.15,
+   "retake_after": 33.61,
    "pairs_before": 158,
-   "pairs_after": 77,
-   "moves": 37,
-   "model": 47.68,
-   "checker": 47.65,
+   "pairs_after": 84,
+   "moves": 38,
+   "model": 60.15,
+   "checker": 60.16,
    "new_conflicts": 0,
-   "missing": 1
+   "missing": 1,
+   "load_before": 75,
+   "load_after": 28
   }
  },
  {
@@ -679,26 +779,30 @@
   "A": {
    "status": "FEASIBLE",
    "retake_before": 158.73,
-   "retake_after": 56.43,
+   "retake_after": 55.33,
    "pairs_before": 250,
-   "pairs_after": 117,
-   "moves": 33,
-   "model": 72.14,
-   "checker": 72.13,
+   "pairs_after": 141,
+   "moves": 34,
+   "model": 84.16,
+   "checker": 84.08,
    "new_conflicts": 0,
-   "missing": 1
+   "missing": 1,
+   "load_before": 70,
+   "load_after": 40
   },
   "B": {
    "status": "FEASIBLE",
    "retake_before": 158.73,
-   "retake_after": 45.15,
+   "retake_after": 49.6,
    "pairs_before": 250,
-   "pairs_after": 103,
-   "moves": 50,
-   "model": 65.07,
-   "checker": 65.0,
+   "pairs_after": 133,
+   "moves": 47,
+   "model": 77.26,
+   "checker": 77.2,
    "new_conflicts": 0,
-   "missing": 1
+   "missing": 1,
+   "load_before": 70,
+   "load_after": 21
   }
  },
  {
@@ -706,26 +810,30 @@
   "A": {
    "status": "OPTIMAL",
    "retake_before": 19.44,
-   "retake_after": 6.22,
+   "retake_after": 6.8,
    "pairs_before": 17,
-   "pairs_after": 10,
-   "moves": 5,
-   "model": 8.08,
-   "checker": 8.07,
+   "pairs_after": 12,
+   "moves": 4,
+   "model": 13.71,
+   "checker": 13.7,
    "new_conflicts": 0,
-   "missing": 0
+   "missing": 0,
+   "load_before": 26,
+   "load_after": 17
   },
   "B": {
-   "status": "OPTIMAL",
+   "status": "FEASIBLE",
    "retake_before": 19.44,
-   "retake_after": 5.91,
+   "retake_after": 5.83,
    "pairs_before": 17,
-   "pairs_after": 10,
-   "moves": 6,
-   "model": 7.27,
-   "checker": 7.26,
+   "pairs_after": 9,
+   "moves": 12,
+   "model": 10.53,
+   "checker": 10.53,
    "new_conflicts": 0,
-   "missing": 0
+   "missing": 0,
+   "load_before": 26,
+   "load_after": 4
   }
  }
 ]

@@ -268,3 +268,32 @@ def test_solver_groups_at_most_one():
     c = from_raw(_raw("C", 30)); c.name = "博雅丙"; c.mask = mask_from_time({"wed": ["1"]})
     sols = solve([a, b, c], {"A": 10, "B": 9, "C": 8}, 0, 20, k=1, groups=[["A", "B", "C"]])
     assert sols[0]["courses"] == ["A"]
+
+
+# ---------- 每日負擔（連續上課、每日總節數） ----------
+from backend.domain.load import Balance, load_excess
+
+
+def test_load_excess_definition():
+    b = Balance(max_consec=3, max_daily=6)
+    run5 = {f"mon-{p}" for p in ["5", "6", "7", "8", "9"]}               # 連續 5 節 → 超出 2
+    assert load_excess(run5, b)["consec_excess"] == 2
+    lunch_break = {f"tue-{p}" for p in ["3", "4", "5", "6"]}            # N 空著＝休息：2+2，不超出
+    assert load_excess(lunch_break, b)["consec_excess"] == 0
+    through_noon = lunch_break | {"tue-N"}                               # 中午也有課 → 連續 5 節
+    assert load_excess(through_noon, b)["consec_excess"] == 2
+    day8 = {f"wed-{p}" for p in ["1", "2", "3", "4", "6", "7", "8", "9"]}
+    e = load_excess(day8, b)
+    assert e["daily_excess"] == 2 and e["per_day"]["wed"] == 8 and e["longest_run"]["wed"] == 4
+
+
+def test_solver_balance_prefers_spread_schedule():
+    """兩門同分選修：一門接在必修後面（形成連續 6 節），一門在別天 → 開啟分散後應選別天。"""
+    req = from_raw(_raw("R", 30)); req.name = "必修"; req.mask = mask_from_time({"mon": ["1", "2", "3"]})
+    a = from_raw(_raw("A", 30)); a.name = "接著上"; a.mask = mask_from_time({"mon": ["4", "N", "5"]})
+    b = from_raw(_raw("B", 30)); b.name = "別天上"; b.mask = mask_from_time({"thu": ["3", "4", "N"]})
+    scores = {"A": 1.0, "B": 1.0}
+    off = solve([req, a, b], scores, 0, 6, must=["R"], k=2)
+    on = solve([req, a, b], scores, 0, 6, must=["R"], k=1, balance=Balance())
+    assert {s["courses"][-1] for s in off} == {"A", "B"}                   # 不分散：兩者同分
+    assert on[0]["courses"] == ["R", "B"] and on[0]["penalty"] == 0

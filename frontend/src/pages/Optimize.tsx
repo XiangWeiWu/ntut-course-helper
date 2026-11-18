@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { get } from "../api";
 
 type Eval = { objective: number; retake_score: number; retake_pairs: number; same_grade_pairs: number; teacher_violations: number;
-  room_violations: number; class_required_conflicts: number; moved_periods: number; upper_affected: Record<string, string> };
+  room_violations: number; class_required_conflicts: number; moved_periods: number;
+  class_load_excess: number; class_load: { class: string; grade: number; consec_excess: number; daily_excess: number; worst: number; max_day: number }[]; upper_affected: Record<string, string> };
 type Move = { ids: string[]; name: string; teachers: string[]; rooms: string[]; grade: number; required: boolean; from: string; to: string };
 type Conf = { upper: string; upper_grade: number; upper_required: boolean; upper_time: string; lower: string; lower_grade: number;
   lower_time: string; risk: number; alternatives: number; weight: number };
@@ -14,7 +15,8 @@ type Report = { dept: string; scenario: string; status: string; seconds: number;
   conflicts_before: Conf[]; conflicts_after: Conf[]; cohorts: Cohort[]; cohorts_before: Cohort[]; risk: Risk[];
   lower_required_occupancy: Record<string, { occupied: number; total: number }> };
 type SumRow = { dept: string } & Record<"A" | "B", { status: string; retake_before: number; retake_after: number; pairs_before: number;
-  pairs_after: number; moves: number; new_conflicts: number; missing: number; model: number; checker: number }>;
+  pairs_after: number; moves: number; new_conflicts: number; missing: number; model: number; checker: number;
+  load_before: number; load_after: number }>;
 
 const pct = (a: number, b: number) => (b ? `${Math.round((1 - a / b) * 100)}%` : "—");
 const Dot = ({ ok, label }: { ok: boolean; label: string }) => (
@@ -60,6 +62,7 @@ export default function Optimize() {
           <div>
             <span className="stat"><div className="v">{b.retake_score} → {a.retake_score}</div><div className="k">加權重修衝堂分數（降低 {pct(a.retake_score, b.retake_score)}）</div></span>
             <span className="stat"><div className="v">{b.retake_pairs} → {a.retake_pairs}</div><div className="k">高年級課 × 低年級必修 衝堂組數</div></span>
+            <span className="stat"><div className="v">{b.class_load_excess ?? "—"} → {a.class_load_excess ?? "—"}</div><div className="k">各班每日負擔超出節數（連續 &gt;3 節、每天 &gt;6 節）</div></span>
             <span className="stat"><div className="v">{r.moves.length}</div><div className="k">建議搬動的課（共 {a.moved_periods} 節次改變）</div></span>
           </div>
           <div className="row">
@@ -80,6 +83,20 @@ export default function Optimize() {
             剩下的衝堂需要靠「同名課在其他時段另開一班」、夜間或週六時段，或調整課程標準的學期安排來解決。</p>
         </>}
       </section>
+
+      {r && b && a && <section className="card">
+        <h2>各班每日負擔（開給該班的所有課，時段合併計算）</h2>
+        <p className="muted">把「開給該班的所有課」的時段合起來，看成該班學生可能面對的最重負擔：連續超過 3 節沒有空堂、或一天超過 6 節的部分算「超出」。
+          依據：連續上課造成認知疲勞，且對學習較弱的學生影響最大（Williams &amp; Shapiro, 2018；Sievertsen 等, 2016）。最佳化時以扣分方式盡量減少，優先順序低於重修衝堂。</p>
+        <div className="scroll"><table><thead><tr><th>班級</th><th className="num">現況 連續超出</th><th className="num">現況 每日超出</th><th className="num">最佳化後 連續超出</th><th className="num">最佳化後 每日超出</th><th className="num">最長連續（後）</th><th className="num">最多一天（後）</th></tr></thead>
+          <tbody>{[...new Set([...(b.class_load ?? []), ...(a.class_load ?? [])].map((x) => x.class))].sort().map((k) => {
+            const x = (b.class_load ?? []).find((y) => y.class === k), y = (a.class_load ?? []).find((z) => z.class === k);
+            return <tr key={k}><td>{k}</td><td className="num">{x?.consec_excess ?? 0}</td><td className="num">{x?.daily_excess ?? 0}</td>
+              <td className="num">{y?.consec_excess ?? 0}</td><td className="num">{y?.daily_excess ?? 0}</td>
+              <td className="num">{y ? `${y.worst} 節` : "—"}</td><td className="num">{y ? `${y.max_day} 節` : "—"}</td></tr>;
+          })}</tbody></table></div>
+        <p className="muted">方案 A 不搬一年級必修，所以一年級的負擔不會改變；方案 B 才會調整。</p>
+      </section>}
 
       {r && <section className="card">
         <h2>各屆課程標準檢查（115-1，第 g 年級＝{115}−g+1 學年入學）</h2>
@@ -126,12 +143,13 @@ export default function Optimize() {
       </section>}
 
       {summary.length > 0 && <section className="card">
-        <h2>全校總覽：加權重修衝堂分數</h2>
-        <div className="scroll"><table><thead><tr><th>系所</th><th className="num">現況</th><th className="num">A 少改動</th><th className="num">A 搬動</th><th className="num">B 大改動</th><th className="num">B 搬動</th><th className="num">標準缺開</th><th>新增衝突</th><th>交叉驗證</th></tr></thead>
+        <h2>全校總覽：加權重修衝堂分數與班級負擔</h2>
+        <div className="scroll"><table><thead><tr><th>系所</th><th className="num">現況</th><th className="num">A 少改動</th><th className="num">A 搬動</th><th className="num">B 大改動</th><th className="num">B 搬動</th><th className="num">負擔超出（現況→A→B）</th><th className="num">標準缺開</th><th>新增衝突</th><th>交叉驗證</th></tr></thead>
           <tbody>{summary.map((s) => <tr key={s.dept} onClick={() => setDept(s.dept)} style={{ cursor: "pointer" }}>
             <td>{s.dept}</td><td className="num">{s.A.retake_before}</td>
             <td className="num">{s.A.retake_after} {s.A.retake_before ? <span className="muted">(−{pct(s.A.retake_after, s.A.retake_before)})</span> : null}</td><td className="num">{s.A.moves}</td>
             <td className="num">{s.B.retake_after} {s.B.retake_before ? <span className="muted">(−{pct(s.B.retake_after, s.B.retake_before)})</span> : null}</td><td className="num">{s.B.moves}</td>
+            <td className="num">{s.A.load_before ?? "—"} → {s.A.load_after ?? "—"} → {s.B.load_after ?? "—"}</td>
             <td className="num">{s.A.missing}</td>
             <td>{s.A.new_conflicts === 0 && s.B.new_conflicts === 0 ? <Dot ok label="0" /> : <Dot ok={false} label={`${s.A.new_conflicts + s.B.new_conflicts}`} />}</td>
             <td>{Math.abs(s.A.model - s.A.checker) < 0.1 && Math.abs(s.B.model - s.B.checker) < 0.1 ? <Dot ok label="一致" /> : <Dot ok={false} label="不一致" />}</td>

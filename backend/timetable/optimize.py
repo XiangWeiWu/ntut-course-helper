@@ -8,6 +8,8 @@
        w(u)=2（u 為必修，重修生兩門都得修）或 1（選修）；k(l)＝全校同名課的不同時段數（可改選他班）
 +  Σ 同年級選修 × 同班必修衝堂 × 0.5
 +  0.15 × 原本的上課節次中「不再使用」的節數（搬動量） + 0.05 × 可搬課排在第 1 節的節數
++  0.3 × 各班每日負擔超出節數：把「開給該班的所有課」的時段聯集視為該班學生可能面對的最重負擔，
+       連續超過 3 節、每天超過 6 節的部分扣分（定義見 backend/domain/load.py；依據見 README）
 現況永遠是可行解（原位置一定在選項中），並作為初始解提示 → 結果不會比現況差。
 """
 from __future__ import annotations
@@ -19,10 +21,14 @@ from dataclasses import dataclass
 from ortools.sat.python import cp_model
 
 from backend.domain.courses import Course
+from backend.domain.load import Balance, windows
+from backend.domain.timeslots import DAYS, PERIODS
 from .data import Unit, block_options, block_slots, dept_units, same_block, slots
 from .risk import risk_of
 
 W_SAME, W_MOVE, W_P1 = 0.5, 0.15, 0.05
+W_LOAD = 0.3
+CLASS_BALANCE = Balance(max_consec=3, max_daily=6)
 SCALE = 100
 
 
@@ -158,12 +164,62 @@ def solve_dept(dept: str, courses: list[Course], scenario: str = "A", time_limit
             m.Add(y >= sum(a) + ca + sum(b) + cb - 1)
         obj.append((p.weight, y))
 
+    # 各班每日負擔：班級時段聯集 U_k[s] ≥ 每門可搬課的佔用；有固定課佔用的節次為常數 1
+    class_units = defaultdict(list)
+    for u in units:
+        for k in u.classes:
+            class_units[k].append(u.uid)
+    B = CLASS_BALANCE
+    for k, uids in class_units.items():
+        uv: dict[str, object] = {}
+        for sl in set().union(*(possible(uid) for uid in uids)):
+            if any(uid not in mov_uids and sl in slots(U[uid].time) for uid in uids):
+                uv[sl] = 1
+                continue
+            vs = [v for uid in uids if uid in mov_uids for v in occ.get((uid, sl), [])]
+            if vs:
+                b = m.NewBoolVar("")
+                for v in vs:
+                    m.Add(b >= v)
+                uv[sl] = b
+        for w in windows(B.max_consec):
+            if not all(s in uv for s in w):
+                continue
+            terms = [uv[s] for s in w]
+            if all(isinstance(t, int) for t in terms):
+                const += W_LOAD
+                continue
+            z = m.NewBoolVar("")
+            m.Add(z >= sum(terms) - B.max_consec)
+            obj.append((W_LOAD, z))
+        for d in DAYS:
+            day = [uv[f"{d}-{p}"] for p in PERIODS if f"{d}-{p}" in uv]
+            if len(day) <= B.max_daily:
+                continue
+            if all(isinstance(t, int) for t in day):
+                const += W_LOAD * (len(day) - B.max_daily)
+                continue
+            e = m.NewIntVar(0, len(day), "")
+            m.Add(e >= sum(day) - B.max_daily)
+            obj.append((W_LOAD, e))
+
     m.Minimize(sum(int(round(w * SCALE)) * v for w, v in obj if w))   # v 可為變數或線性式
     sv = cp_model.CpSolver()
     sv.parameters.max_time_in_seconds = time_limit
     sv.parameters.num_workers = 8
     st = sv.Solve(m)
     status = sv.StatusName(st)
+    if st == cp_model.FEASIBLE:
+        # 未證明最佳時，輔助變數（衝堂標記、負擔超出量）可能沒有收緊，回報的目標值會偏高。
+        # 固定課表後再解一次，只讓輔助變數收緊 → 回報值＝這份課表的真實分數（與獨立檢查器可比）。
+        for opts in x.values():
+            for _, v in opts:
+                m.Add(v == sv.Value(v))
+        sv2 = cp_model.CpSolver()
+        sv2.parameters.max_time_in_seconds = 10.0
+        sv2.parameters.num_workers = 8
+        if sv2.Solve(m) in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+            sv = sv2
 
     new_time = {}
     if st in (cp_model.OPTIMAL, cp_model.FEASIBLE):

@@ -13,7 +13,8 @@ from functools import lru_cache
 from backend.domain.courses import REQUIRED_TYPES, Course
 from backend.ingest.load import RAW, SNAPSHOT, parse_home_class
 from .data import DAY5, DAYSEQ, Unit, slots
-from .optimize import W_MOVE, W_P1, solve_dept
+from backend.domain.load import load_excess
+from .optimize import CLASS_BALANCE, W_LOAD, W_MOVE, W_P1, solve_dept
 
 DAY_ZH = {"sun": "日", "mon": "一", "tue": "二", "wed": "三", "thu": "四", "fri": "五", "sat": "六"}
 
@@ -62,7 +63,22 @@ def evaluate(units: list[Unit], times: dict[str, dict], movable: set[str], pairs
         if uid in times:
             moved_periods += len(slots(u.time) - slots(times[uid]))   # 原本節次中不再使用的節數
         p1 += sum(1 for sl in S[uid] if sl.endswith("-1"))
-    total = retake + same + W_MOVE * moved_periods + W_P1 * p1
+    # 各班每日負擔（獨立計算：直接由班級時段聯集算 load_excess）
+    by_class = defaultdict(set)
+    for u in units:
+        for k in u.classes:
+            by_class[k] |= S[u.uid]
+    load_rows, load_total = [], 0
+    for k, occ_k in sorted(by_class.items()):
+        ex = load_excess(occ_k, CLASS_BALANCE)
+        n = ex["consec_excess"] + ex["daily_excess"]
+        load_total += n
+        if n:
+            g = parse_home_class(k)
+            load_rows.append({"class": k, "grade": g[1] if g else 0, "consec_excess": ex["consec_excess"],
+                              "daily_excess": ex["daily_excess"],
+                              "worst": max(ex["longest_run"].values()), "max_day": max(ex["per_day"].values())})
+    total = retake + same + W_MOVE * moved_periods + W_P1 * p1 + W_LOAD * load_total
     upper_hit = defaultdict(set)
     for p in conflicts:
         if p.kind == "retake":
@@ -77,6 +93,7 @@ def evaluate(units: list[Unit], times: dict[str, dict], movable: set[str], pairs
         "same_grade_pairs": sum(p.kind == "same_grade" for p in conflicts),
         "teacher_violations": tv, "room_violations": rv, "class_required_conflicts": cv,
         "moved_periods": moved_periods,
+        "class_load_excess": load_total, "class_load": load_rows,
         "upper_affected": {g: f"{len(upper_hit[g])}/{len(upper_all[g])}" for g in sorted(upper_all) if g >= 2},
         "_conflicts": conflicts,
     }

@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { get, post, slotKeys, timeText, type Course } from "../api";
 import { estimateElectives, plan, type Std } from "../grad";
 import Timetable from "../components/Timetable";
+import LoadSummary from "../components/LoadSummary";
+import { loadExcess } from "../load";
 
 const CUR_YEAR = 115, CUR_SEM = 1;
 const COHORTS = [115, 114, 113, 112];
@@ -27,6 +29,9 @@ export default function Graduation() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [sols, setSols] = useState<Sol[] | null>(null);
   const [pick, setPick] = useState(0);              // 目前顯示第幾個方案
+  const [balanceSet, setBalanceSet] = useState<boolean | null>(null);   // null＝依預設（有重修就開啟）
+  const [maxConsec, setMaxConsec] = useState(3);
+  const [maxDaily, setMaxDaily] = useState(6);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
@@ -53,6 +58,7 @@ export default function Graduation() {
   }, [gradeClasses.map((c) => c.name).join(), key, data]);   // eslint-disable-line
 
   const cur = p?.semesters[0];
+  const balance = balanceSet ?? (cur?.retakes.length ?? 0) > 0;
   const reqIds = new Set(classes.find((c) => c.name === homeClass)?.required ?? []);
   const reqSlots = new Set(courses.filter((c) => reqIds.has(c.id)).flatMap(slotKeys));
   /** 重修可選的班：一般課＝全校同名課；「學院指定向度-X」與「學生自選向度」是佔位課（備註「請選：通識中心/博雅課程」），
@@ -85,7 +91,8 @@ export default function Graduation() {
       }
       const minC = Math.min(cur.requiredCredits, maxPerSem);
       setPick(0);
-      setSols(await post<Sol[]>("/api/schedule/solve", { home_class: homeClass || null, favorites, groups, min_credit: minC, max_credit: maxPerSem, k: 3 }));
+      setSols(await post<Sol[]>("/api/schedule/solve", { home_class: homeClass || null, favorites, groups, min_credit: minC, max_credit: maxPerSem, k: 3,
+        balance, max_consec: maxConsec, max_daily: maxDaily }));
     } catch (e) { setErr(String(e)); } finally { setBusy(false); }
   };
   const missingRetakes = (s: Sol) => (cur?.retakes ?? []).filter((r) => {
@@ -177,6 +184,13 @@ export default function Graduation() {
           </div>;
         })}
         <div className="row">
+          <label className="muted"><input type="checkbox" checked={balance} onChange={(e) => setBalanceSet(e.target.checked)} /> 分散每日負擔</label>
+          <label className="muted">連續上課 ≤ <input type="number" min={1} max={10} value={maxConsec} onChange={(e) => setMaxConsec(+e.target.value)} style={{ width: 48 }} /> 節</label>
+          <label className="muted">每天 ≤ <input type="number" min={1} max={14} value={maxDaily} onChange={(e) => setMaxDaily(+e.target.value)} style={{ width: 48 }} /> 節</label>
+          <span className="muted">{balanceSet === null && cur.retakes.length ? "（有重修，預設開啟）" : ""}超過時扣分、盡量避免，不會因此排不出課。</span>
+        </div>
+        <p className="muted" style={{ marginTop: 0 }}>依據：連續上課沒有休息會造成認知疲勞，且對學習較弱的學生影響最大（Williams &amp; Shapiro, 2018）；休息能恢復表現、對低成就學生效果較大（Sievertsen 等, 2016, PNAS）。</p>
+        <div className="row">
           <button className="btn primary" onClick={schedule} disabled={busy || !homeClass}>{busy ? "排課中…" : "排出本學期課表（重修優先）"}</button>
           <span className="muted">會放入 {homeClass} 的必修、從各班挑不衝堂的重修時段，再補選修到 {maxPerSem} 學分以內。</span>
         </div>
@@ -190,6 +204,13 @@ export default function Graduation() {
             <div className="row"><span className="muted">{s.optimal ? "最佳解" : "可行解"}</span>
               {miss.length ? <span className="status"><i style={{ background: "var(--critical)" }} />排不進：{miss.join("、")}（可選的班都與必修衝堂或已滿學分上限）</span>
                 : cur.retakes.length ? <span className="status"><i style={{ background: "var(--good)" }} />重修全部排入</span> : null}</div>
+            <LoadSummary courses={s.courses} maxConsec={maxConsec} maxDaily={maxDaily} />
+            {(() => {
+              const base = loadExcess(reqSlots, { maxConsec, maxDaily, weight: 0 });
+              return base.consec_excess + base.daily_excess > 0
+                ? <p className="muted" style={{ marginTop: 0 }}>其中 {homeClass} 的必修本身就造成「連續超出 {base.consec_excess} 節、每日超出 {base.daily_excess} 節」，這部分無法靠選課避免（可向系辦反映，見「系所排課最佳化」）。</p>
+                : null;
+            })()}
             <Timetable courses={s.courses} />
             {sols.map((o, j) => j !== i && others[j] ? <p key={j} className="muted">方案 {j + 1} 與此方案不同的課：{others[j]}</p> : null)}
           </div>;

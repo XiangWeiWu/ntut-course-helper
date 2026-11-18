@@ -104,6 +104,9 @@ class SolveReq(BaseModel):
     avoid_evening: bool = True
     k: int = 3
     groups: list[list[str]] = Field(default_factory=list)   # 每組至多選一門
+    balance: bool = False                                    # 分散每日負擔（扣分）
+    max_consec: int = Field(3, ge=1, le=10)
+    max_daily: int = Field(6, ge=1, le=14)
 
 
 @app.post("/api/schedule/solve")
@@ -142,7 +145,9 @@ def schedule_solve(r: SolveReq):
         if r.avoid_evening:
             s -= 0.4 * sum(p in "ABCD" for _, p in sl)
         scores[c.id] = s * max(c.credit, 1)     # 0 學分的收藏課（如體育重修）仍有分數
-    sols = solve(list(t.values()), scores, r.min_credit, r.max_credit, must, r.k, groups=r.groups)
+    from backend.domain.load import Balance
+    bal = Balance(r.max_consec, r.max_daily) if r.balance else None
+    sols = solve(list(t.values()), scores, r.min_credit, r.max_credit, must, r.k, groups=r.groups, balance=bal)
     if not sols:
         raise HTTPException(422, "找不到可行課表（必修衝堂或學分範圍無法滿足）")
     for s in sols:

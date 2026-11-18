@@ -10,12 +10,16 @@ from collections import defaultdict
 from ortools.sat.python import cp_model
 
 from backend.domain.courses import Course
-from backend.domain.timeslots import slots_of
+from backend.domain.load import Balance, load_excess, windows
+from backend.domain.timeslots import DAYS, PERIODS, slots_of
 
 
 def solve(courses: list[Course], scores: dict[str, float], min_credit: float = 0, max_credit: float = 25,
-          must: list[str] = (), k: int = 3, time_limit: float = 5.0, groups: list[list[str]] = ()) -> list[dict]:
-    """groups：每組課號至多選一門（例：被當的「學院指定向度」可用任一門同向度博雅課重修，但只需一門）。"""
+          must: list[str] = (), k: int = 3, time_limit: float = 5.0, groups: list[list[str]] = (),
+          balance: Balance | None = None) -> list[dict]:
+    """groups：每組課號至多選一門（例：被當的「學院指定向度」可用任一門同向度博雅課重修，但只需一門）。
+    balance：分散每日負擔（連續上課、每日總節數超出上限時扣分），定義見 backend/domain/load.py。
+    目標 = Σ 偏好分數 − weight ×（連續超出節數 + 每日超出節數）。"""
     cand = [c for c in courses if c.mask and (c.id in scores or c.id in must)]
     m = cp_model.CpModel()
     x = {c.id: m.NewBoolVar(c.id) for c in cand}
@@ -42,7 +46,22 @@ def solve(courses: list[Course], scores: dict[str, float], min_credit: float = 0
     cr = sum(int(round(c.credit * 10)) * x[c.id] for c in cand)
     m.Add(cr >= int(min_credit * 10))
     m.Add(cr <= int(max_credit * 10))
-    m.Maximize(sum(int(round(scores.get(c.id, 0) * 100)) * x[c.id] for c in cand))
+    obj = [int(round(scores.get(c.id, 0) * 100)) * x[c.id] for c in cand]
+    if balance:
+        W = int(round(balance.weight * 100))
+        occ = {s: sum(vs) for s, vs in ((f"{d}-{p}", slot.get((d, p), [])) for d in DAYS for p in PERIODS) if vs}
+        for w in windows(balance.max_consec):
+            if all(s in occ for s in w):
+                z = m.NewBoolVar("")
+                m.Add(z >= sum(occ[s] for s in w) - balance.max_consec)
+                obj.append(-W * z)
+        for d in DAYS:
+            day = [occ[f"{d}-{p}"] for p in PERIODS if f"{d}-{p}" in occ]
+            if len(day) > balance.max_daily:
+                e = m.NewIntVar(0, len(day), "")
+                m.Add(e >= sum(day) - balance.max_daily)
+                obj.append(-W * e)
+    m.Maximize(sum(obj))
     sols = []
     for _ in range(k):
         sv = cp_model.CpSolver()
@@ -51,8 +70,11 @@ def solve(courses: list[Course], scores: dict[str, float], min_credit: float = 0
         if st not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
             break
         chosen = [c for c in cand if sv.Value(x[c.id])]
+        pref = sum(scores.get(c.id, 0) for c in chosen)
+        ex = load_excess({f"{d}-{p}" for c in chosen for d, p in slots_of(c.mask)}, balance or Balance())
+        pen = (balance.weight * (ex["consec_excess"] + ex["daily_excess"])) if balance else 0.0
         sols.append({"courses": [c.id for c in chosen], "credits": sum(c.credit for c in chosen),
-                     "score": sum(scores.get(c.id, 0) for c in chosen),
-                     "optimal": st == cp_model.OPTIMAL})
+                     "score": round(pref - pen, 4), "preference": round(pref, 4), "penalty": round(pen, 4),
+                     "load": ex, "optimal": st == cp_model.OPTIMAL})
         m.AddBoolOr([x[c.id].Not() for c in chosen] + [x[c.id] for c in cand if c not in chosen])
     return sols

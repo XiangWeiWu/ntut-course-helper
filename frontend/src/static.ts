@@ -77,7 +77,8 @@ async function scheduleSolve(r: any) {
   (r.groups ?? []).forEach((g: string[], i: number) => g.forEach((id) => groupOf.set(id, `g${i}`)));
   const cands: Cand[] = all.filter((c) => c.slots.length && (scores.has(c.id) || must.includes(c.id)))
     .map((c) => ({ id: c.id, name: c.name, credit: c.credit, slots: c.slots, score: scores.get(c.id) ?? 0, group: groupOf.get(c.id) }));
-  const sols = solve(cands, must, r.min_credit ?? 16, r.max_credit ?? 25, r.k ?? 3);
+  const balance = r.balance ? { maxConsec: r.max_consec ?? 3, maxDaily: r.max_daily ?? 6, weight: 0.5 } : undefined;
+  const sols = solve(cands, must, r.min_credit ?? 16, r.max_credit ?? 25, r.k ?? 3, 3_000_000, balance);
   if (!sols.length) throw new Error("找不到可行課表（必修衝堂或學分範圍無法滿足）");
   return sols.map((s) => ({ ...s, courses: s.ids.map((i) => withReports(byId.get(i)!)) }));
 }
