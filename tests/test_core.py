@@ -297,3 +297,26 @@ def test_solver_balance_prefers_spread_schedule():
     on = solve([req, a, b], scores, 0, 6, must=["R"], k=1, balance=Balance())
     assert {s["courses"][-1] for s in off} == {"A", "B"}                   # 不分散：兩者同分
     assert on[0]["courses"] == ["R", "B"] and on[0]["penalty"] == 0
+
+
+# ---------- 群體採用推薦的模擬 ----------
+from backend.recommend.crowd import simulate
+from backend.recommend.scoring import build as build_scores, is_boya
+from backend.sim.population import all_home_classes
+
+
+def test_scoring_includes_general_education(courses):
+    t = {c.id: c for c in courses}
+    scores, must = build_scores(t, all_home_classes(courses), "資工三")
+    assert any(is_boya(t[i]) for i in scores)            # 通識博雅課在候選中
+    assert all(i not in scores for i in must)            # 必修不重複計分
+
+
+def test_crowd_pricing_reduces_overload():
+    r = simulate(0.5, rounds=3)
+    h = r["history"]
+    best = h[r["best_round"]]
+    assert best["excess_seats"] <= h[0]["excess_seats"]                       # 公布最好的一輪，不會比不分散差
+    assert best["excess_seats"] == min(x["excess_seats"] for x in h)
+    if r["best_round"] > 0:
+        assert r["prices"] and all(v > 0 for v in r["prices"].values())

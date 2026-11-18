@@ -88,6 +88,9 @@ def export_standards(cohorts=(112, 113, 114, 115)):
         dump(f"standards_{y}.json", grad_standards(y))
     from backend.api.main import grad_prereq
     dump("prereq.json", grad_prereq())
+    crowd = ROOT / "reports" / "crowd.json"
+    if crowd.exists():
+        dump("crowd.json", json.loads(crowd.read_text(encoding="utf-8")))
 
 
 def scenario_key(mech, prio, pa, capf):

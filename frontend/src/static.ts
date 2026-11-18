@@ -1,5 +1,6 @@
 /** 靜態模式（GitHub Pages）：以預先匯出的 JSON 在瀏覽器內回答與後端 API 相同的請求。 */
 import { solve, type Cand } from "./solver";
+import { buildScores } from "./scoring.ts";
 
 const BASE = import.meta.env.BASE_URL;
 const cache = new Map<string, Promise<any>>();
@@ -44,35 +45,9 @@ async function courses(p: URLSearchParams) {
 async function scheduleSolve(r: any) {
   const all = (await load("courses.json")) as C[];
   const byId = new Map(all.map((c) => [c.id, c]));
-  const must: string[] = [...(r.must ?? [])];
-  let dept: string | null = null, grade: number | null = null;
-  if (r.home_class) {
-    const g = ((await load("classes.json")) as any[]).find((x) => x.name === r.home_class);
-    if (g) {
-      dept = g.dept; grade = g.grade;
-      const occ = new Set<string>();
-      for (const id of g.required as string[]) {            // 預排必修（去衝堂）
-        const c = byId.get(id)!;
-        if (!c.slots.some((s) => occ.has(s))) { must.push(id); c.slots.forEach((s) => occ.add(s)); }
-      }
-    }
-  }
-  const fav: Record<string, number> = r.favorites ?? {};
-  const scores = new Map<string, number>();
-  for (const c of all) {
-    let s = fav[c.id];
-    if ((r.exclude ?? []).includes(c.id) || !c.slots.length || c.people === 0 || (c.credit <= 0 && s === undefined)) continue;
-    if (s === undefined) {
-      if (c.required) continue;
-      if (dept && c.dept === dept && (!grade || c.grades.includes(grade))) s = 0.6;
-      else if (c.type === "☆") s = 0.3;
-      else continue;
-    }
-    const periods = c.slots.map((x) => x.split("-")[1]);
-    if (r.avoid_early) s -= 0.4 * periods.filter((p) => p === "1").length;
-    if (r.avoid_evening ?? true) s -= 0.4 * periods.filter((p) => "ABCD".includes(p)).length;
-    scores.set(c.id, s * Math.max(c.credit, 1));   // 與後端一致：0 學分的收藏課仍有分數
-  }
+  const crowd = r.crowd_alpha ? await load("crowd.json").catch(() => null) : null;
+  const prices = crowd ? crowd.scenarios.reduce((a: any, x: any) => Math.abs(x.alpha - r.crowd_alpha) < Math.abs(a.alpha - r.crowd_alpha) ? x : a).prices : {};
+  const { scores, must } = buildScores(all as any, (await load("classes.json")) as any, r, prices);
   const groupOf = new Map<string, string>();
   (r.groups ?? []).forEach((g: string[], i: number) => g.forEach((id) => groupOf.set(id, `g${i}`)));
   const cands: Cand[] = all.filter((c) => c.slots.length && (scores.has(c.id) || must.includes(c.id)))
@@ -141,6 +116,7 @@ export async function staticRequest(method: "GET" | "POST", url: string, body?: 
     case "GET /api/sim/report": return load("sim_report.json");
     case "GET /api/grad/standards": return load(`standards_${p.get("cohort")}.json`);
     case "GET /api/grad/prereq": return load("prereq.json");
+    case "GET /api/crowd": return load("crowd.json");
     case "POST /api/sim/run": return simRun(body);
     case "POST /api/capacity": {
       saveReport(body.course_id, body.capacity);

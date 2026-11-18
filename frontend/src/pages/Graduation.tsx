@@ -5,6 +5,7 @@ import { norm, parseRules } from "../rules";
 import { buildGraph, downstream, type Supplement } from "../prereq";
 import CourseMap, { type MapStatus } from "../components/CourseMap";
 import PrereqTree from "../components/PrereqTree";
+import CrowdRisk, { useCrowd } from "../components/CrowdRisk";
 import Timetable from "../components/Timetable";
 import LoadSummary from "../components/LoadSummary";
 import { loadExcess } from "../load";
@@ -41,6 +42,8 @@ export default function Graduation() {
   const [balanceSet, setBalanceSet] = useState<boolean | null>(null);   // null＝依預設（有重修就開啟）
   const [maxConsec, setMaxConsec] = useState(3);
   const [maxDaily, setMaxDaily] = useState(6);
+  const [crowdAlpha, setCrowdAlpha] = useState(0.5);     // 考慮其他同學（0＝不考慮）
+  const crowd = useCrowd();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
@@ -137,7 +140,7 @@ export default function Graduation() {
       const minC = Math.min(Math.max(cur.requiredCredits, minCredits(cur.grade)), maxPerSem);   // 學則下限
       setPick(0);
       setSols(await post<Sol[]>("/api/schedule/solve", { home_class: homeClass || null, favorites, groups, min_credit: minC, max_credit: maxPerSem, k: 3,
-        balance, max_consec: maxConsec, max_daily: maxDaily }));
+        balance, max_consec: maxConsec, max_daily: maxDaily, crowd_alpha: crowdAlpha || null }));
     } catch (e) { setErr(String(e)); } finally { setBusy(false); }
   };
   const missingRetakes = (s: Sol) => (cur?.retakes ?? []).filter((r) => {
@@ -259,6 +262,8 @@ export default function Graduation() {
           <label className="muted">連續上課 ≤ <input type="number" min={1} max={10} value={maxConsec} onChange={(e) => setMaxConsec(+e.target.value)} style={{ width: 48 }} /> 節</label>
           <label className="muted">每天 ≤ <input type="number" min={1} max={14} value={maxDaily} onChange={(e) => setMaxDaily(+e.target.value)} style={{ width: 48 }} /> 節</label>
           <span className="muted">{balanceSet === null && cur.retakes.length ? "（有重修，預設開啟）" : ""}超過時扣分、盡量避免，不會因此排不出課。</span>
+          <label className="muted">考慮其他同學 <select value={crowdAlpha} onChange={(e) => setCrowdAlpha(+e.target.value)}>
+            <option value={0}>不考慮</option><option value={0.25}>25% 照推薦</option><option value={0.5}>50% 照推薦</option><option value={1}>100% 照推薦</option></select></label>
         </div>
         <p className="muted" style={{ marginTop: 0 }}>依據：連續上課沒有休息會造成認知疲勞，且對學習較弱的學生影響最大（Williams &amp; Shapiro, 2018）；休息能恢復表現、對低成就學生效果較大（Sievertsen 等, 2016, PNAS）。</p>
         <div className="row">
@@ -276,6 +281,7 @@ export default function Graduation() {
               {miss.length ? <span className="status"><i style={{ background: "var(--critical)" }} />排不進：{miss.join("、")}（可選的班都與必修衝堂或已滿學分上限）</span>
                 : cur.retakes.length ? <span className="status"><i style={{ background: "var(--good)" }} />重修全部排入</span> : null}</div>
             <LoadSummary courses={s.courses} maxConsec={maxConsec} maxDaily={maxDaily} />
+            {crowdAlpha > 0 && <CrowdRisk courses={s.courses} alpha={crowdAlpha} crowd={crowd} />}
             {(() => {
               const base = loadExcess(reqSlots, { maxConsec, maxDaily, weight: 0 });
               return base.consec_excess + base.daily_excess > 0

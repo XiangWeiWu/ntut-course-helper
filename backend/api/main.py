@@ -107,44 +107,35 @@ class SolveReq(BaseModel):
     balance: bool = False                                    # 分散每日負擔（扣分）
     max_consec: int = Field(3, ge=1, le=10)
     max_daily: int = Field(6, ge=1, le=14)
+    crowd_alpha: float | None = Field(None, ge=0, le=1)       # 考慮其他同學：假設此比例的學生照推薦選課
+
+
+def crowd_prices(alpha: float) -> dict[str, float]:
+    """群體模擬得到的擁擠扣分（reports/crowd.json，取最接近的採用比例）。"""
+    p = ROOT / "reports" / "crowd.json"
+    if not p.exists():
+        return {}
+    d = json.loads(p.read_text(encoding="utf-8"))
+    best = min(d["scenarios"], key=lambda s: abs(s["alpha"] - alpha))
+    return best["prices"]
+
+
+@app.get("/api/crowd")
+def crowd():
+    """群體採用推薦的模擬結果（python -m backend.recommend.crowd 產生）。"""
+    p = ROOT / "reports" / "crowd.json"
+    if not p.exists():
+        raise HTTPException(404, "尚未產生，請執行 python -m backend.recommend.crowd")
+    return json.loads(p.read_text(encoding="utf-8"))
 
 
 @app.post("/api/schedule/solve")
 def schedule_solve(r: SolveReq):
+    from backend.recommend.scoring import build
     t = term(r.year, r.sem)
-    must = list(r.must)
-    dept = grade = None
-    if r.home_class:
-        g = next((g for g in all_home_classes(list(t.values())) if g.name == r.home_class), None)
-        if g:
-            dept, grade = g.dept, g.grade
-            mask = 0
-            for cid in g.required:                     # 預排必修（去衝堂）
-                if not (t[cid].mask & mask):
-                    must.append(cid)
-                    mask |= t[cid].mask
-    scores = {}
-    for c in t.values():
-        s = r.favorites.get(c.id)
-        if c.id in r.exclude or not c.mask or c.people == 0 or (c.credit <= 0 and s is None):
-            continue
-        if s is None:
-            if c.required:
-                continue
-            d = course_dept(c)
-            hc = [h for n in c.classes if (h := parse_home_class(n))]
-            if dept and d == dept and (not grade or any(h[1] == grade for h in hc)):
-                s = 0.6
-            elif c.type == "☆":
-                s = 0.3
-            else:
-                continue
-        sl = slots_of(c.mask)
-        if r.avoid_early:
-            s -= 0.4 * sum(p == "1" for _, p in sl)
-        if r.avoid_evening:
-            s -= 0.4 * sum(p in "ABCD" for _, p in sl)
-        scores[c.id] = s * max(c.credit, 1)     # 0 學分的收藏課（如體育重修）仍有分數
+    prices = crowd_prices(r.crowd_alpha) if r.crowd_alpha else None
+    scores, must = build(t, all_home_classes(list(t.values())), r.home_class, r.favorites, set(r.exclude), r.must,
+                         r.avoid_early, r.avoid_evening, prices)
     from backend.domain.load import Balance
     bal = Balance(r.max_consec, r.max_daily) if r.balance else None
     sols = solve(list(t.values()), scores, r.min_credit, r.max_credit, must, r.k, groups=r.groups, balance=bal)
