@@ -26,6 +26,7 @@ export default function Graduation() {
   const [maxPerSem, setMax] = useState(saved.maxPerSem ?? 25);
   const [courses, setCourses] = useState<Course[]>([]);
   const [sols, setSols] = useState<Sol[] | null>(null);
+  const [pick, setPick] = useState(0);              // 目前顯示第幾個方案
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
@@ -55,7 +56,7 @@ export default function Graduation() {
   const reqIds = new Set(classes.find((c) => c.name === homeClass)?.required ?? []);
   const reqSlots = new Set(courses.filter((c) => reqIds.has(c.id)).flatMap(slotKeys));
   /** 重修可選的班：一般課＝全校同名課；「學院指定向度-X」與「學生自選向度」是佔位課（備註「請選：通識中心/博雅課程」），
-   *  實際要改選對應向度的博雅課（向度寫在博雅課備註，如「自然與科學向度」）。 */
+   *  實際就是選修通識課程：改選對應向度的博雅課（向度寫在博雅課備註，如「自然與科學向度」）；學生自選向度＝任一門通識。 */
   const isPlaceholder = (name: string) => name.startsWith("學院指定向度-") || name === "學生自選向度";
   const sectionsOf = (name: string) => {
     const open = (c: Course) => Object.values(c.time).some((v) => v.length) && c.people > 0;
@@ -83,6 +84,7 @@ export default function Graduation() {
         if (ids.length) groups.push(ids);
       }
       const minC = Math.min(cur.requiredCredits, maxPerSem);
+      setPick(0);
       setSols(await post<Sol[]>("/api/schedule/solve", { home_class: homeClass || null, favorites, groups, min_credit: minC, max_credit: maxPerSem, k: 3 }));
     } catch (e) { setErr(String(e)); } finally { setBusy(false); }
   };
@@ -164,7 +166,7 @@ export default function Graduation() {
           const secs = sectionsOf(r.name);
           return <div key={r.key} style={{ marginBottom: 10 }}>
             <b>{r.name}</b> <span className="muted">{r.credits} 學分 · 本學期可選 {secs.length} 個班</span>
-            {isPlaceholder(r.name) && <p className="muted" style={{ margin: "2px 0" }}>這是向度佔位課：實際要改選{r.name === "學生自選向度" ? "任一門" : `「${r.name.slice(7)}向度」的`}博雅課程。</p>}
+            {isPlaceholder(r.name) && <p className="muted" style={{ margin: "2px 0" }}>這是向度佔位課：實際要改選{r.name === "學生自選向度" ? "任一門" : `「${r.name.slice(7)}向度」的`}通識課程（通識中心開設的博雅課程）。</p>}
             {!secs.length && <p className="err">本學期查無可選的課程，可能改名或沒開，請洽系辦。</p>}
             <div className="scroll"><table><tbody>{secs.slice(0, 12).map((c) => {
               const clash = slotKeys(c).some((k) => reqSlots.has(k));
@@ -178,16 +180,20 @@ export default function Graduation() {
           <button className="btn primary" onClick={schedule} disabled={busy || !homeClass}>{busy ? "排課中…" : "排出本學期課表（重修優先）"}</button>
           <span className="muted">會放入 {homeClass} 的必修、從各班挑不衝堂的重修時段，再補選修到 {maxPerSem} 學分以內。</span>
         </div>
-        {sols?.map((s, i) => {
-          const miss = missingRetakes(s);
-          return <div key={i} style={{ marginTop: 12 }}>
-            <div className="row"><b>方案 {i + 1}</b><span className="muted">{s.credits} 學分{s.optimal ? " · 最佳解" : ""}</span>
+        {sols && sols.length > 0 && (() => {
+          const i = Math.min(pick, sols.length - 1), s = sols[i], miss = missingRetakes(s);
+          const others = sols.map((o, j) => j === i ? "" : o.courses.filter((c) => !s.courses.some((x) => x.id === c.id)).map((c) => c.name).join("、"));
+          return <div style={{ marginTop: 12 }}>
+            <div className="row">
+              {sols.map((o, j) => <button key={j} className={`btn ${j === i ? "primary" : ""}`} onClick={() => setPick(j)}>方案 {j + 1}（{o.credits} 學分）</button>)}
+            </div>
+            <div className="row"><span className="muted">{s.optimal ? "最佳解" : "可行解"}</span>
               {miss.length ? <span className="status"><i style={{ background: "var(--critical)" }} />排不進：{miss.join("、")}（可選的班都與必修衝堂或已滿學分上限）</span>
                 : cur.retakes.length ? <span className="status"><i style={{ background: "var(--good)" }} />重修全部排入</span> : null}</div>
-            {i === 0 && <Timetable courses={s.courses} />}
-            {i > 0 && <div className="muted">{s.courses.map((c) => c.name).join("、")}</div>}
+            <Timetable courses={s.courses} />
+            {sols.map((o, j) => j !== i && others[j] ? <p key={j} className="muted">方案 {j + 1} 與此方案不同的課：{others[j]}</p> : null)}
           </div>;
-        })}
+        })()}
       </section>}
     </div>
   );

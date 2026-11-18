@@ -62,6 +62,28 @@ def home_classes(courses: list[Course]) -> list[ClassGroup]:
     return sorted(out, key=lambda g: g.name)
 
 
+def all_home_classes(courses: list[Course]) -> list[ClassGroup]:
+    """所有本班（含沒有專屬必修、估不出人數的班，例如多數大四班）。
+    home_classes() 只收能估人數的班，供模擬母體使用；選課與畢業規劃的班級清單用這個。"""
+    sized = {g.name: g for g in home_classes(courses)}
+    req = defaultdict(list)
+    names = set()
+    for c in courses:
+        for n in c.classes:
+            if parse_home_class(n):
+                names.add(n)
+                if c.required and c.mask:
+                    req[n].append(c.id)
+    out = []
+    for n in names:
+        if n in sized:
+            out.append(sized[n])
+        else:
+            dept, grade, _ = parse_home_class(n)
+            out.append(ClassGroup(n, dept, grade, 0, req[n]))
+    return sorted(out, key=lambda g: g.name)
+
+
 def generate(courses: list[Course], rng: np.random.Generator, scale: float = 1.0,
              include_classes: set[str] | None = None) -> list[Student]:
     by_id = {c.id: c for c in courses}

@@ -15,7 +15,7 @@ from backend.ingest.load import CAPACITY_META, ROOT, course_dept, load_term, par
 from backend.sim.calibrate import load_alpha
 from backend.sim.engine import SimConfig, clean, run
 from backend.sim.mechanisms.ntut import NTUTConfig
-from backend.sim.population import home_classes
+from backend.sim.population import all_home_classes, home_classes
 from backend.sim.utility import is_general
 
 OUT = ROOT / "frontend" / "public" / "data"
@@ -40,7 +40,7 @@ def export_courses(year, sem):
         rows.append(d)
     dump("courses.json", rows)
     dump("classes.json", [{"name": g.name, "dept": g.dept, "grade": g.grade, "size": g.size, "required": g.required}
-                          for g in home_classes(list(cs))])
+                          for g in all_home_classes(list(cs))])
     dump("meta.json", {"year": year, "sem": sem, "capacityMeta": CAPACITY_META.get((year, sem), {})})
 
 

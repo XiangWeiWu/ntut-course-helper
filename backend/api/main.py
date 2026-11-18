@@ -20,7 +20,7 @@ from backend.sim.calibrate import load_alpha
 from backend.sim.engine import SimConfig, run
 from backend.sim.mechanisms.fcfs import FCFSConfig
 from backend.sim.mechanisms.ntut import NTUTConfig
-from backend.sim.population import home_classes
+from backend.sim.population import all_home_classes, home_classes
 
 app = FastAPI(title="NTUT 選課系統雛形")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
@@ -75,7 +75,7 @@ def course(cid: str, year: int = 115, sem: int = 1):
 @app.get("/api/classes")
 def classes(year: int = 115, sem: int = 1):
     return [{"name": g.name, "dept": g.dept, "grade": g.grade, "size": g.size, "required": g.required}
-            for g in home_classes(list(term(year, sem).values()))]
+            for g in all_home_classes(list(term(year, sem).values()))]
 
 
 class CheckReq(BaseModel):
@@ -112,7 +112,7 @@ def schedule_solve(r: SolveReq):
     must = list(r.must)
     dept = grade = None
     if r.home_class:
-        g = next((g for g in home_classes(list(t.values())) if g.name == r.home_class), None)
+        g = next((g for g in all_home_classes(list(t.values())) if g.name == r.home_class), None)
         if g:
             dept, grade = g.dept, g.grade
             mask = 0
