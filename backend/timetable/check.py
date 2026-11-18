@@ -132,7 +132,7 @@ def dept_fullnames() -> dict[str, str]:
 
 
 def write_snapshot(cohorts=(112, 113, 114, 115)):
-    keep = lambda d: {"credits": d["credits"], "courses": [
+    keep = lambda d: {"credits": d["credits"], "rules": d.get("rules") or [], "courses": [
         {k: c[k] for k in ("year", "sem", "type", "name", "credit")} for c in d["courses"]]}
     data = {"dept_map": dept_fullnames(),
             "standards": {str(y): {k: keep(v) for k, v in standard(y).items()} for y in cohorts}}

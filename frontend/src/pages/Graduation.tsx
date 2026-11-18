@@ -1,16 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
 import { get, post, slotKeys, timeText, type Course } from "../api";
-import { MAX_CREDITS, estimateElectives, minCredits, plan, type Std } from "../grad";
+import { MAX_CREDITS, REQUIRED, estimateElectives, minCredits, plan, requiredItems, type Std } from "../grad";
+import { norm, parseRules } from "../rules";
+import { buildGraph, downstream, type Supplement } from "../prereq";
+import CourseMap, { type MapStatus } from "../components/CourseMap";
+import PrereqTree from "../components/PrereqTree";
 import Timetable from "../components/Timetable";
 import LoadSummary from "../components/LoadSummary";
 import { loadExcess } from "../load";
 
 const CUR_YEAR = 115, CUR_SEM = 1;
 const COHORTS = [115, 114, 113, 112];
-type StdResp = { cohort: number; deptMap: Record<string, string>; standards: Record<string, Std> };
+type StdResp = { cohort: number; deptMap: Record<string, string>; standards: Record<string, Std & { rules?: string[] }> };
 type Cls = { name: string; dept: string; grade: number; required: string[] };
 type Sol = { courses: Course[]; credits: number; score: number; optimal: boolean };
-type Saved = { cohort: number; key: string; homeClass: string; failed: string[]; pro: number | null; free: number | null; overload: number };
+type Saved = { cohort: number; key: string; homeClass: string; failed: string[]; pro: number | null; free: number | null; overload: number;
+  electives: string[]; checks: string[] };
 
 const LS = "ntut-grad-plan";
 const loadSaved = (): Partial<Saved> => { try { return JSON.parse(localStorage.getItem(LS) || "{}"); } catch { return {}; } };
@@ -26,6 +31,9 @@ export default function Graduation() {
   const [pro, setPro] = useState<number | null>(saved.pro ?? null);
   const [free, setFree] = useState<number | null>(saved.free ?? null);
   const [overload, setOverload] = useState(saved.overload ?? 0);   // 可超修的學分（0＝不超修）
+  const [electivesDone, setElectivesDone] = useState<Set<string>>(new Set(saved.electives ?? []));   // 地圖上勾選已修的選修（課程 key）
+  const [checks, setChecks] = useState<Set<string>>(new Set(saved.checks ?? []));                 // 人工確認的畢業門檻
+  const [supplement, setSupplement] = useState<Supplement>({});
   const maxPerSem = MAX_CREDITS + overload;
   const [courses, setCourses] = useState<Course[]>([]);
   const [sols, setSols] = useState<Sol[] | null>(null);
@@ -36,16 +44,29 @@ export default function Graduation() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
-  useEffect(() => { get<Cls[]>("/api/classes").then(setClasses).catch(() => {}); get<Course[]>("/api/courses?limit=10000").then(setCourses).catch(() => {}); }, []);
+  useEffect(() => {
+    get<Cls[]>("/api/classes").then(setClasses).catch(() => {});
+    get<Course[]>("/api/courses?limit=10000").then(setCourses).catch(() => {});
+    get<Supplement>("/api/grad/prereq").then(setSupplement).catch(() => {});
+  }, []);
   useEffect(() => { setData(null); get<StdResp>(`/api/grad/standards?cohort=${cohort}`).then(setData).catch((e) => setErr(String(e))); }, [cohort]);
   useEffect(() => {
-    try { localStorage.setItem(LS, JSON.stringify({ cohort, key, homeClass, failed: [...failed], pro, free, overload })); } catch { /* 私密瀏覽 */ }
-  }, [cohort, key, homeClass, failed, pro, free, overload]);
+    try { localStorage.setItem(LS, JSON.stringify({ cohort, key, homeClass, failed: [...failed], pro, free, overload,
+      electives: [...electivesDone], checks: [...checks] })); } catch { /* 私密瀏覽 */ }
+  }, [cohort, key, homeClass, failed, pro, free, overload, electivesDone, checks]);
+  const resetFor = () => { setFailed(new Set()); setPro(null); setFree(null); setSols(null); setElectivesDone(new Set()); setChecks(new Set()); };
 
   const std = data?.standards[key];
   const grade = CUR_YEAR - cohort + 1;
   const est = std ? estimateElectives(std, grade, CUR_SEM) : { pro: 0, free: 0 };
-  const proV = pro ?? est.pro, freeV = free ?? est.free;
+  const graph = useMemo(() => std ? buildGraph(std.courses, supplement, key) : { nodes: [], edges: [] }, [std, supplement, key]);
+  // 地圖上勾選的選修：★ 算專業選修，其他（☆ 等）算跨域及自由選修
+  const ticked = graph.nodes.filter((n) => electivesDone.has(n.key));
+  const tickedPro = ticked.filter((n) => n.type === "★").reduce((a, n) => a + n.credit, 0);
+  const tickedFree = ticked.filter((n) => n.type !== "★").reduce((a, n) => a + n.credit, 0);
+  // pro/free 現在代表「地圖上沒有列出的其他已修學分」（他系課、通識超出等）；null＝尚未填（新生為 0，其餘依進度估計扣掉已勾選）
+  const proExtra = pro ?? (electivesDone.size ? 0 : est.pro), freeExtra = free ?? (electivesDone.size ? 0 : est.free);
+  const proV = tickedPro + proExtra, freeV = tickedFree + freeExtra;
   const p = useMemo(() => std ? plan(std, { cohort, currentYear: CUR_YEAR, currentSem: CUR_SEM, failed, proEarned: proV, freeEarned: freeV, overload }) : null,
     [std, cohort, failed, proV, freeV, overload]);
 
@@ -59,6 +80,19 @@ export default function Graduation() {
   }, [gradeClasses.map((c) => c.name).join(), key, data]);   // eslint-disable-line
 
   const cur = p?.semesters[0];
+  const failedKeys = useMemo(() => new Set([...failed].filter((k) => (p?.past ?? []).some((c) => c.key === k))), [failed, p]);
+  const affected = useMemo(() => downstream(graph.edges, failedKeys), [graph, failedKeys]);
+  const statusOf = (k: string): MapStatus => {
+    const n = graph.nodes.find((x) => x.key === k);
+    if (!n) return "future";
+    const isReq = REQUIRED.includes(n.type);
+    const past = n.year < grade || (n.year === grade && n.sem < CUR_SEM);
+    if (!isReq) return electivesDone.has(k) ? "passed" : affected.has(k) ? "affected" : "future";
+    if (past) return failed.has(k) ? "failed" : "passed";
+    if (affected.has(k)) return "affected";
+    return n.year === grade && n.sem === CUR_SEM ? "current" : "future";
+  };
+  const rules = useMemo(() => std ? parseRules(std.rules, std.courses) : null, [std]);
   const balance = balanceSet ?? (cur?.retakes.length ?? 0) > 0;
   const reqIds = new Set(classes.find((c) => c.name === homeClass)?.required ?? []);
   const reqSlots = new Set(courses.filter((c) => reqIds.has(c.id)).flatMap(slotKeys));
@@ -76,8 +110,18 @@ export default function Graduation() {
   };
 
   const toggle = (k: string) => { const s = new Set(failed); s.has(k) ? s.delete(k) : s.add(k); setFailed(s); };
-  const pastBySem = (p?.past ?? []).reduce<Record<string, any[]>>((acc, c) => {
-    const k = `大${"一二三四"[+c.year - 1]}${c.sem === "1" ? "上" : "下"}`; (acc[k] ||= []).push(c); return acc; }, {});
+  const toggleElective = (k: string) => { const s = new Set(electivesDone); s.has(k) ? s.delete(k) : s.add(k); setElectivesDone(s); };
+  const toggleCheck = (id: string) => { const s = new Set(checks); s.has(id) ? s.delete(id) : s.add(id); setChecks(s); };
+  // 通識：由課程標準的向度佔位課計算（已通過／規劃中），與規則要求比對
+  const items = std ? requiredItems(std) : [];
+  const isPast = (c: { year: string; sem: string }) => +c.year < grade || (+c.year === grade && +c.sem < CUR_SEM);
+  const genEdRows = rules?.genEd ? [...rules.genEd.dims.map((d) => ({ label: d, need: rules.genEd!.perDim, match: (n: string) => n === `學院指定向度-${d}` })),
+    { label: "不分向度（學生自選）", need: rules.genEd.free, match: (n: string) => n === "學生自選向度" }].map((r) => {
+      const its = items.filter((c) => r.match(c.name));
+      return { ...r, done: its.filter((c) => isPast(c) && !failed.has(c.key)).reduce((a, c) => a + c.credits, 0),
+               planned: its.filter((c) => !isPast(c) || failed.has(c.key)).reduce((a, c) => a + c.credits, 0) };
+    }) : [];
+  const tickedNames = new Set(ticked.map((n) => norm(n.name)));
 
   const schedule = async () => {
     if (!cur) return;
@@ -105,12 +149,12 @@ export default function Graduation() {
     <div style={{ display: "grid", gap: 16 }}>
       <section className="card">
         <h2>學生畢業規劃：被當了還能準時畢業嗎？</h2>
-        <p className="note">選擇入學年與課程標準，<b>取消勾選被當（或還沒修過）的必修</b>，填入已修的選修學分。
-          系統依「該屆」課程標準計算各類學分進度、把重修排進剩餘學期（與原本相同的上／下學期），並判斷能否準時畢業。資料只存在你的瀏覽器。</p>
+        <p className="note">選擇入學年與課程標準後，在<b>課程地圖</b>上標出被當的必修、勾選已修的選修。系統依「該屆」課程標準與畢業規定，
+          檢查通識向度、指定課群與各類學分，把重修排進剩餘學期（與原本相同的上／下學期），並判斷能否準時畢業。資料只存在你的瀏覽器。</p>
         <div className="row">
-          <label className="muted">入學年 <select value={cohort} onChange={(e) => { setCohort(+e.target.value); setFailed(new Set()); setPro(null); setFree(null); setSols(null); }}>
+          <label className="muted">入學年 <select value={cohort} onChange={(e) => { setCohort(+e.target.value); resetFor(); }}>
             {COHORTS.map((y) => <option key={y} value={y}>{y} 學年（本學期大{"一二三四"[CUR_YEAR - y]}）</option>)}</select></label>
-          <label className="muted">課程標準 <select value={key} onChange={(e) => { setKey(e.target.value); setFailed(new Set()); setPro(null); setFree(null); setSols(null); }}>
+          <label className="muted">課程標準 <select value={key} onChange={(e) => { setKey(e.target.value); resetFor(); }}>
             {Object.keys(data?.standards ?? { [key]: 0 }).filter((k) => !k.startsWith("通識中心")).map((k) => <option key={k} value={k}>{k}</option>)}</select></label>
           <label className="muted">班級 <select value={homeClass} onChange={(e) => setHomeClass(e.target.value)}>
             {gradeClasses.map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}</select></label>
@@ -121,33 +165,56 @@ export default function Graduation() {
         {!std && !err && <p className="muted">載入課程標準中…</p>}
       </section>
 
+      {p && std && <section className="card">
+        <h2>1. 課程地圖（{key}，{cohort} 學年入學）</h2>
+        <p className="muted">點<b>以前學期</b>的必修可切換「已通過／被當」；選修預設收合，點開勾選已修的課，專業選修學分會自動計算。
+          被當的課會把下游課程標成「受先修影響」。</p>
+        <CourseMap nodes={graph.nodes} statusOf={statusOf} onToggleRequired={toggle} electivesDone={electivesDone} onToggleElective={toggleElective} />
+        <h3>先修關係樹狀圖</h3>
+        <PrereqTree nodes={graph.nodes} edges={graph.edges} statusOf={statusOf} />
+      </section>}
+
       {p && std && <div className="grid2">
         <section className="card">
-          <h2>1. 以前學期的必修（打勾＝已通過）</h2>
-          {!p.past.length && <p className="muted">你是新生，還沒有以前學期的必修。</p>}
-          {Object.entries(pastBySem).map(([sem, cs]) => (
-            <div key={sem}><h3>{sem}</h3>
-              {cs.map((c: any) => (
-                <label key={c.key} style={{ display: "flex", gap: 8, alignItems: "center", padding: "2px 0" }}>
-                  <input type="checkbox" checked={!failed.has(c.key)} onChange={() => toggle(c.key)} />
-                  <span style={{ textDecoration: failed.has(c.key) ? "line-through" : undefined }}>{c.name}</span>
-                  <span className="muted">{c.type} {c.credits} 學分</span>
-                  {failed.has(c.key) && <span className="status"><i style={{ background: "var(--critical)" }} />需重修</span>}
-                </label>
-              ))}
-            </div>
-          ))}
-          <h3>已修選修學分</h3>
+          <h2>2. 畢業門檻檢查</h2>
+          {rules?.genEd && <>
+            <h3>通識（博雅）課程：應修 {rules.genEd.total} 學分</h3>
+            <table><thead><tr><th>向度</th><th className="num">要求</th><th className="num">已修</th><th className="num">規劃中</th><th>狀態</th></tr></thead>
+              <tbody>{genEdRows.map((r) => <tr key={r.label}><td>{r.label}</td><td className="num">{r.need}</td><td className="num">{r.done}</td><td className="num">{r.planned}</td>
+                <td>{r.done >= r.need ? <span className="status"><i style={{ background: "var(--good)" }} />完成</span>
+                  : r.done + r.planned >= r.need ? <span className="status"><i style={{ background: "var(--accent)" }} />已排入規劃</span>
+                  : <span className="status"><i style={{ background: "var(--critical)" }} />不足</span>}</td></tr>)}</tbody></table>
+            <p className="muted">課程標準中的「學院指定向度-X」「學生自選向度」就是通識課：重修或補修時改選對應向度的博雅課程。
+              {rules.genEd.freeCap ? `另外，跨域及自由選修中通識博雅課程至多認列 ${rules.genEd.freeCap} 學分。` : ""}</p>
+          </>}
+          {rules && rules.groups.length > 0 && <>
+            <h3>系上指定課群（在地圖上勾選已修的選修後自動判斷）</h3>
+            {rules.groups.map((g, i) => {
+              const got = g.names.filter((n) => tickedNames.has(n));
+              return <div key={i} style={{ marginBottom: 8 }}>
+                <span className="status"><i style={{ background: got.length >= g.k ? "var(--good)" : "var(--critical)" }} />
+                  <b>{g.names.length}{g.declared ? `（規定 ${g.declared}）` : ""} 門至少 {g.k} 門</b>：已修 {got.length} 門</span>
+                <div className="muted" style={{ fontSize: 12 }}>{g.names.join("、")}</div>
+                {g.declared && <div className="err" style={{ fontSize: 12 }}>規則寫 {g.declared} 門，課程標準中只找到 {g.names.length} 門課名，請以系上公告為準。</div>}
+              </div>;
+            })}
+          </>}
+          {rules && rules.manual.length > 0 && <>
+            <h3>需自行確認的項目</h3>
+            {rules.manual.map((m) => <label key={m.id} style={{ display: "flex", gap: 6, alignItems: "flex-start", fontSize: 13, padding: "2px 0" }}>
+              <input type="checkbox" checked={checks.has(m.text)} onChange={() => toggleCheck(m.text)} /><span>{m.text}</span></label>)}
+          </>}
+          <h3>地圖上沒列出的其他已修學分</h3>
           <div className="row">
-            <label className="muted">專業選修 <input type="number" value={proV} onChange={(e) => setPro(+e.target.value)} style={{ width: 64 }} /></label>
-            <label className="muted">跨域及自由選修 <input type="number" value={freeV} onChange={(e) => setFree(+e.target.value)} style={{ width: 64 }} /></label>
-            <button className="btn" onClick={() => { setPro(null); setFree(null); }}>依正常進度估計</button>
+            <label className="muted">專業選修 <input type="number" min={0} value={proExtra} onChange={(e) => setPro(Math.max(0, +e.target.value))} style={{ width: 60 }} /></label>
+            <label className="muted">跨域及自由選修 <input type="number" min={0} value={freeExtra} onChange={(e) => setFree(Math.max(0, +e.target.value))} style={{ width: 60 }} /></label>
           </div>
-          {pro === null && free === null && <p className="muted">目前是依正常進度估計的值，請改成成績單上的實際學分。</p>}
+          <p className="muted">例如他系的課、超出向度要求的通識。目前合計：專業選修 {proV}（地圖勾選 {tickedPro}）、跨域及自由選修 {freeV}（地圖勾選 {tickedFree}）。
+            {pro === null && free === null && !electivesDone.size ? "尚未勾選，暫以正常進度估計。" : ""}</p>
         </section>
 
         <section className="card">
-          <h2>2. 畢業評估</h2>
+          <h2>3. 畢業評估</h2>
           <p className="status" style={{ fontSize: 15 }}><i style={{ background: p.onTime ? "var(--good)" : "var(--critical)", width: 12, height: 12 }} />
             <b>{p.onTime ? "依此規劃可以準時畢業" : "有延畢風險"}</b></p>
           {p.warnings.map((w, i) => <p key={i} className="err" style={{ margin: "4px 0" }}>⚠ {w}</p>)}
@@ -172,7 +239,7 @@ export default function Graduation() {
       </div>}
 
       {p && cur && <section className="card">
-        <h2>3. 本學期（{cur.term.label}）重修開課查詢與排課</h2>
+        <h2>4. 本學期（{cur.term.label}）重修開課查詢與排課</h2>
         {!cur.retakes.length ? <p className="muted">本學期沒有需要重修的課（下學期的重修會在 {CUR_YEAR}-2 學期排）。</p> : cur.retakes.map((r) => {
           const secs = sectionsOf(r.name);
           return <div key={r.key} style={{ marginBottom: 10 }}>

@@ -313,9 +313,16 @@ def grad_standards(cohort: int = Query(..., ge=100, le=130)):
     std = standard(cohort)
     if not std:
         raise HTTPException(404, f"查無 {cohort} 學年入學的課程標準")
-    keep = lambda d: {"credits": d["credits"], "courses": [
+    keep = lambda d: {"credits": d["credits"], "rules": d.get("rules") or [], "courses": [
         {k: c[k] for k in ("year", "sem", "type", "name", "credit")} for c in d["courses"]]}
     return {"cohort": cohort, "deptMap": dept_fullnames(), "standards": {k: keep(v) for k, v in std.items()}}
+
+
+@app.get("/api/grad/prereq")
+def grad_prereq():
+    """系所補充的先修關係（data/prereq.json）。"""
+    p = ROOT / "data" / "prereq.json"
+    return json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
 
 
 @app.get("/api/standards")

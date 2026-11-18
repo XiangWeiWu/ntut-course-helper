@@ -140,6 +140,7 @@ export async function staticRequest(method: "GET" | "POST", url: string, body?: 
     case "GET /api/dept/conflicts": return deptConflicts(p);
     case "GET /api/sim/report": return load("sim_report.json");
     case "GET /api/grad/standards": return load(`standards_${p.get("cohort")}.json`);
+    case "GET /api/grad/prereq": return load("prereq.json");
     case "POST /api/sim/run": return simRun(body);
     case "POST /api/capacity": {
       saveReport(body.course_id, body.capacity);
