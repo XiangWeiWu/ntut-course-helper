@@ -130,8 +130,8 @@ export default function Optimize() {
         <div className="scroll"><table><thead><tr><th>系所</th><th className="num">現況</th><th className="num">A 少改動</th><th className="num">A 搬動</th><th className="num">B 大改動</th><th className="num">B 搬動</th><th className="num">標準缺開</th><th>新增衝突</th><th>交叉驗證</th></tr></thead>
           <tbody>{summary.map((s) => <tr key={s.dept} onClick={() => setDept(s.dept)} style={{ cursor: "pointer" }}>
             <td>{s.dept}</td><td className="num">{s.A.retake_before}</td>
-            <td className="num">{s.A.retake_after} <span className="muted">(−{pct(s.A.retake_after, s.A.retake_before)})</span></td><td className="num">{s.A.moves}</td>
-            <td className="num">{s.B.retake_after} <span className="muted">(−{pct(s.B.retake_after, s.B.retake_before)})</span></td><td className="num">{s.B.moves}</td>
+            <td className="num">{s.A.retake_after} {s.A.retake_before ? <span className="muted">(−{pct(s.A.retake_after, s.A.retake_before)})</span> : null}</td><td className="num">{s.A.moves}</td>
+            <td className="num">{s.B.retake_after} {s.B.retake_before ? <span className="muted">(−{pct(s.B.retake_after, s.B.retake_before)})</span> : null}</td><td className="num">{s.B.moves}</td>
             <td className="num">{s.A.missing}</td>
             <td>{s.A.new_conflicts === 0 && s.B.new_conflicts === 0 ? <Dot ok label="0" /> : <Dot ok={false} label={`${s.A.new_conflicts + s.B.new_conflicts}`} />}</td>
             <td>{Math.abs(s.A.model - s.A.checker) < 0.1 && Math.abs(s.B.model - s.B.checker) < 0.1 ? <Dot ok label="一致" /> : <Dot ok={false} label="不一致" />}</td>

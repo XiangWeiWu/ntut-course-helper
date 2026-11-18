@@ -127,8 +127,13 @@ def cohort_check(dept: str, units: list[Unit], times: dict, courses: list[Course
     full = dept_fullnames().get(dept)
     out = []
     all_names = {c.name for c in courses}
+    grades_present = {g for u in units for g in u.grades}
     for g in (1, 2, 3, 4):
         cohort = year - g + 1
+        if g not in grades_present:
+            out.append({"grade": g, "cohort": cohort, "standard": None,
+                        "note": "本學期沒有此年級的本系班級（學士班學生通常大二起分流到各系上課，請到分流後的系查看）"})
+            continue
         std = standard(cohort)
         keys = [k for k in std if full and (k == full or k.startswith(full + "【"))] if full else []
         if not keys:
