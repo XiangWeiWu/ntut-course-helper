@@ -13,11 +13,13 @@ from pydantic import BaseModel, Field
 from backend.domain.conflicts import find_conflicts, total_credits
 from backend.domain.courses import COURSE_TYPES
 from backend.domain.timeslots import DAYS, PERIOD_TIMES, PERIODS, slots_of
-from backend.ingest.load import ROOT, available_terms, course_dept, load_standards, load_term, parse_home_class
+from backend.ingest.load import (CAPACITY_META, ROOT, available_terms, course_dept, course_key, load_standards,
+                                 load_term, parse_home_class, save_override)
 from backend.recommend.solver import solve
 from backend.sim.calibrate import load_alpha
 from backend.sim.engine import SimConfig, run
 from backend.sim.mechanisms.fcfs import FCFSConfig
+from backend.sim.mechanisms.ntut import NTUTConfig
 from backend.sim.population import home_classes
 
 app = FastAPI(title="NTUT 選課系統雛形")
@@ -33,7 +35,9 @@ def term(year, sem):
 
 @app.get("/api/meta")
 def meta():
-    return {"terms": available_terms(), "days": DAYS, "periods": PERIODS, "periodTimes": PERIOD_TIMES,
+    load_term(115, 1)
+    return {"capacityMeta": {f"{k[0]}-{k[1]}": v for k, v in CAPACITY_META.items()},
+            "terms": available_terms(), "days": DAYS, "periods": PERIODS, "periodTimes": PERIOD_TIMES,
             "courseTypes": COURSE_TYPES}
 
 
@@ -158,6 +162,12 @@ def sim_report():
     r = dict(_report("sim_115_1.json"))
     r.pop("course_table", None)
     out = {"main": r}
+    try:
+        f = dict(_report("sim_115_1_fcfs.json"))
+        f.pop("course_table", None)
+        out["fcfs"] = f
+    except HTTPException:
+        out["fcfs"] = None
     for k, f in (("sensitivity", "sensitivity.json"), ("validation", "validation.json")):
         try:
             out[k] = _report(f)
@@ -174,6 +184,11 @@ class SimReq(BaseModel):
     service_time: float = Field(0.05, gt=0, le=2)
     median_arrival: float = Field(20.0, gt=0, le=600)
     timeout: float = Field(30.0, gt=0, le=600)
+    mechanism: str = Field("ntut", pattern="^(ntut|fcfs)$")
+    priority_days: float = Field(7.0, ge=0, le=14)
+    p_request: float = Field(0.3, ge=0, le=1)
+    p_approve: float = Field(0.8, ge=0, le=1)
+    visits_per_day: float = Field(1.5, gt=0, le=24)
 
 
 @app.post("/api/sim/run")
@@ -181,6 +196,10 @@ def sim_run(r: SimReq):
     cfg = SimConfig(year=115, sem=1, scale=r.scale, seeds=list(range(r.seeds)), capacity_factor=r.capacity_factor,
                     fcfs=FCFSConfig(servers=r.servers, service_time=r.service_time,
                                     median_arrival=r.median_arrival, timeout=r.timeout),
+                    mechanism=r.mechanism,
+                    ntut=NTUTConfig(servers=r.servers, service_time=r.service_time, median_arrival=r.median_arrival,
+                                    timeout=r.timeout, priority_days=r.priority_days, p_request=r.p_request,
+                                    p_approve=r.p_approve, visits_per_day=r.visits_per_day),
                     alpha=load_alpha(115, 1))
     res = run(cfg)
     res.pop("course_table", None)
@@ -200,13 +219,32 @@ def teacher_demand(teacher: str = "", dept: str = ""):
             continue
         if dept and (course_dept(c) or "") != dept:
             continue
+        r = {**r, "capacity": c.capacity, "oversub": r["demand"] / max(c.capacity, 1)}   # 名額以最新（含教師回報）為準
         rows.append({**r, "teachers": c.teachers, "observed": c.people, "capacitySource": c.capacity_source,
                      "time": c.time, "advice": _advice(r, c.capacity_source)})
     return sorted(rows, key=lambda x: -x["oversub"])[:300]
 
 
+class CapacityReq(BaseModel):
+    course_id: str
+    capacity: int = Field(ge=1, le=1000)
+    note: str = Field("", max_length=200)
+
+
+@app.post("/api/capacity")
+def report_capacity(r: CapacityReq):
+    """教師回報實際名額。以 課號code+教師 為鍵，下學期同一門課自動沿用。
+    雛形未做身分驗證：正式上線需接學校 SSO，只允許授課教師本人修改。"""
+    c = term(115, 1).get(r.course_id)
+    if not c:
+        raise HTTPException(404)
+    save_override(course_key(c), r.capacity, r.note)
+    c2 = term(115, 1)[r.course_id]
+    return {"id": c2.id, "capacity": c2.capacity, "capacitySource": c2.capacity_source}
+
+
 def _advice(r, src="notes"):
-    if r["oversub"] < 0.4 and src != "notes":
+    if r["oversub"] < 0.4 and src not in ("notes", "teacher"):
         return "需求/名額偏低，但名額為推估（可能高估）：請先確認實際上限"
     if r["oversub"] >= 1.5:
         return "需求遠超名額：建議加開班或擴大教室"

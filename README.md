@@ -6,10 +6,11 @@
 ## 快速開始
 ```bash
 python3 -m venv .venv && .venv/bin/pip install fastapi 'uvicorn[standard]' ortools numpy pandas pytest httpx
-scripts/fetch_data.sh 115 1 114 2 114 1 113 2 113 1     # git sparse checkout 取得資料
+scripts/fetch_data.sh 115 1 114 2 114 1 113 2 113 1 112 2 112 1 111 2 111 1 110 2 110 1   # 取得資料（含 5 年歷史）
 .venv/bin/python -m backend.sim.calibrate --year 115 --sem 1   # 校準課程吸引力 α
 .venv/bin/python -m backend.sim.run --seeds 10 --out reports/sim_115_1.json
-.venv/bin/python -m backend.sim.sensitivity               # 吞吐量 × 名額 敏感度
+.venv/bin/python -m backend.sim.run --seeds 10 --mechanism fcfs --out reports/sim_115_1_fcfs.json
+.venv/bin/python -m backend.sim.sensitivity               # 本系優先 × 加簽 × 名額 × 跨系成本
 .venv/bin/python -m backend.sim.validate                  # 114-1 校準 → 115-1 hold-out 驗證
 (cd frontend && npm install && npm run build)
 .venv/bin/uvicorn backend.api.main:app --port 8000        # http://localhost:8000
@@ -33,26 +34,45 @@ scripts/fetch_data.sh 115 1 114 2 114 1 113 2 113 1     # git sparse checkout �
   （由 `standard.json` 的學分欄位與實例交叉比對）。
 - 課綱檔含教師 email，本系統**不讀取也不顯示**。
 
-## 模型假設（請批判性閱讀）
-1. **名額**：備註「限N人」(120 門) → 教室歷史最大人數 → 同課號歷史最大 → 預設。後兩者可能高估。
-2. **母體**：只有大學部「本班」學生（約 5,400 人，由必修課人數中位數推得）；研究所、進修部、跨校生未模擬，
-   但他們占用的名額也算在觀察人數中 → 模擬需求偏低。
-3. **必修預排**，只有選修進入搶課；`people==0` 的課視為停開排除。
-4. **效用**：`U = α_c + 系所興趣 + 年級相符 − 早八/夜間厭惡 + 英語偏好 + Gumbel`；β 為先驗設定、未估計。
-5. **α 校準**：對數差收縮映射；已滿的課只往上推（右設限）。但因觀察值本身受名額截斷，
-   校準後的需求幾乎貼著名額 → 模擬中的競爭程度很可能**低估**（基準效用達成率 99.5% 應這樣解讀）。
-6. **FCFS**：對數常態到達、k 個 worker 的 FIFO 伺服器、逾時重送、學生看得到「已滿」不送出。
-7. 北科實際選課規則（是否 FCFS、優先順序）**未查證**；機制以介面抽換。
+## 北科選課制度（模擬器預設，`backend/sim/mechanisms/ntut.py`）
+- 第 1 週：本系開的課只有本系生能選；通識/博雅第一天全校開放。第 2 週：全校開放。共 14 天。
+- 先到先得；滿額可申請加簽（老師同意後 1–3 天生效，上限 名額×1.23）；有人退選才釋出名額，其他人要回來刷。
+- 學生拿到更喜歡的課時會退掉較不喜歡的課（內生退選）。
+- 純搶課對照：`--mechanism fcfs`。關掉本系優先/回訪/加簽時，北科模型重現純 FCFS（已驗證）。
 
-## 目前結果（115-1，10 seeds）
-- 第一志願取得率 73.5%（95% 區間 72.6–74.5%），到達時間與效用 Spearman ρ = −0.19。
-- 敏感度：伺服器吞吐越低，大量逾時重送使結果近似隨機，ρ 趨近 0（「當機反而比較公平」，但代價是巨量逾時）；
-  名額 ×0.8 時 ρ 降到 −0.35，手速影響變大。
-- Hold-out 驗證：模擬 MAE 11.35 / ρ 0.715 vs 「沿用上學期人數」基準 MAE 11.69 / ρ 0.716 → **預測力與天真基準持平**。
-  本模型的價值是反事實的機制比較，不是人數預測。
+## 名額（無法向教務處取得時）
+優先序：教師在系統回報 → 備註「限N人」→ 近 5 年同課同師的重複天花板（÷ 偏誤係數 1.093，
+由備註上限的課交叉校正）→ 教室/歷史最大人數（低可信度）。
+
+**資料證據**：113-1～115-1 有備註上限的 673 門課中，57% 達到上限，達到者多數超額，
+超額中位數為上限的 22.7% → 加簽很普遍；模擬的加簽上限即取此值。（備註有上限的課可能不具代表性。）
+
+## 模型假設（請批判性閱讀）
+1. 母體：只有大學部本班學生（約 5,400 人）；研究所、進修部、跨校生未模擬。
+2. 必修預排；博雅課（資料標為 △）視為可自由選擇的通識；`people==0` 的課視為停開。
+3. 效用：`U = α_c + 系所興趣 − 跨系成本 + 年級相符 − 早八/夜間厭惡 + 英語偏好 + Gumbel`。
+   **跨系成本 1.5 是無資料可估的先驗**；0/1.5/3 的敏感度分析顯示結論方向一致。
+4. α 以歷史人數校準（滿額課右設限）。歷史人數已被名額截斷，模型**低估競爭**。
+5. 驗證：預測各課人數明顯輸給「沿用上學期人數」（MAE 17.3 vs 10.2）→ 只用於比較制度的方向。
+
+## 主要發現（115-1，10 seeds）
+- 本系優先一週幾乎消除「手速」對結果的影響（ρ：純搶課 −0.14 → 北科 −0.02）。
+- 代價：想修他系課的學生效用略降（99.5% → 98.9%），且前 10% 學生需登入約 20 次刷退選名額（純搶課 1 次）。
+- 加簽同意率越高，外系生的損失越小。
+- 各情境效用差距都很小（零點幾個百分點），請看方向而非幅度。
+
+## Windows 本機執行
+```powershell
+py -m venv .venv
+.venv\Scripts\pip install fastapi "uvicorn[standard]" ortools numpy pandas pytest httpx
+cd frontend; npm install; npm run build; cd ..
+.venv\Scripts\uvicorn backend.api.main:app --port 8000
+```
+瀏覽器開 http://localhost:8000。`reports/` 已附預先算好的結果；需要重跑模擬時，
+先用 Git Bash 執行 `scripts/fetch_data.sh`（需安裝 Git for Windows）。
 
 ## 下一步
-- 名額：向教務處取得真實上限，或爬選課系統的「人數上限」。
-- 用加退選期間的時間序列（若可取得）估計需求，而非截斷後人數。
-- 機制：志願序＋抽籤、點數競標、Course Match（A-CEEI），在同一批代理人上比較。
-- LLM 代理人：實作 `backend/sim/agents.py::LLMAgent.wishlist()`，抽樣比較與效用模型的志願分布差異。
+- 用加退選期間的時間序列（若可取得）估計未截斷需求，改善競爭程度的低估。
+- 志願序＋抽籤、Course Match 等機制比較。
+- LLM 代理人：實作 `backend/sim/agents.py::LLMAgent.wishlist()`。
+- 教師回報名額目前無身分驗證；正式上線需接學校 SSO。

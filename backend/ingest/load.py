@@ -11,9 +11,11 @@ from __future__ import annotations
 import json
 import math
 import re
-from collections import defaultdict
+from collections import Counter, defaultdict
 from functools import lru_cache
 from pathlib import Path
+
+import numpy as np
 
 from backend.domain.courses import Course, from_raw
 
@@ -61,14 +63,57 @@ def _prev_terms(year: int, sem: int, k: int) -> list[tuple[int, int]]:
     return out
 
 
-def estimate_capacity(courses: list[Course], history: list[list[Course]]) -> None:
-    """人數上限不在資料中（已以 115-1 全部欄位確認），故分層估計：
-    1. 備註寫明「限N人」→ notes（可信）
-    2. 該教室在歷史+本學期出現過的最大選課人數 → classroom_hist（教室容量的下界估計）
-    3. 同課號歷史最大人數 → course_hist
-    4. 否則 ceil(people*1.15)+5 → default
-    最後一律確保 capacity >= people（實際已選人數不可能超過上限，除非加簽）。
+OVERRIDES = ROOT / "data" / "overrides" / "capacity.json"
+
+
+def course_key(c: Course) -> str:
+    """課號 code + 教師：跨學期辨識「同一門課」（課號 id 每學期不同）。"""
+    return f"{c.code}|{'、'.join(c.teachers)}"
+
+
+def load_overrides() -> dict[str, int]:
+    try:
+        return {k: int(v["capacity"]) for k, v in json.loads(OVERRIDES.read_text()).items()}
+    except (FileNotFoundError, ValueError, KeyError, TypeError):
+        return {}
+
+
+def save_override(key: str, capacity: int, note: str = "") -> None:
+    OVERRIDES.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        d = json.loads(OVERRIDES.read_text())
+    except (FileNotFoundError, ValueError):
+        d = {}
+    import datetime
+    d[key] = {"capacity": int(capacity), "note": note, "updated": datetime.date.today().isoformat()}
+    OVERRIDES.write_text(json.dumps(d, ensure_ascii=False, indent=1))
+    load_term.cache_clear()
+
+
+def detect_ceiling(history: list[int], tol: int = 2, k: int = 2) -> int | None:
+    """重複天花板：歷史人數中「接近最大值（±tol）」出現 ≥k 次 → 取其眾數。
+    原理：滿額的課會反覆停在同一個數字附近。加簽會把人數推高，因此需再做偏誤校正（見下）。"""
+    v = [p for p in history if p > 0]
+    if len(v) < k:
+        return None
+    m = max(v)
+    near = [p for p in v if p >= m - tol]
+    if len(near) < k:
+        return None
+    return Counter(near).most_common(1)[0][0]
+
+
+def estimate_capacity(courses: list[Course], history: list[list[Course]],
+                      long_history: dict[str, list[int]] | None = None) -> dict:
+    """人數上限不在資料中（已查證），且無法向教務處取得，故分層估計（可信度由高到低）：
+    1. teacher：教師在系統回報的實際上限（data/overrides/capacity.json）
+    2. notes：備註「限N人」
+    3. ceiling：近 5 年同課號+教師的重複天花板 ÷ 偏誤係數
+       偏誤係數 = 在「有備註上限」的課上，median(天花板/備註上限)；這是用有標籤資料做的交叉校正。
+    4. classroom_hist / course_hist / default：低可信度
+    注意：人數可因加簽超過上限，因此 capacity 不再強制 >= people。
     """
+    overrides = load_overrides()
     room_max: dict[str, int] = defaultdict(int)
     code_max: dict[str, int] = defaultdict(int)
     for term in history + [courses]:
@@ -76,17 +121,43 @@ def estimate_capacity(courses: list[Course], history: list[list[Course]]) -> Non
             for r in c.classrooms:
                 room_max[r] = max(room_max[r], c.people)
             code_max[c.code] = max(code_max[c.code], c.people)
+    lh = long_history or {}
+    ratios = [ce / c.notes_limit for c in courses
+              if c.notes_limit and (ce := detect_ceiling(lh.get(course_key(c), [])))]
+    bias = float(np.median(ratios)) if len(ratios) >= 10 else 1.0
     for c in courses:
-        if c.notes_limit:
+        key = course_key(c)
+        ce = detect_ceiling(lh.get(key, []))
+        if key in overrides:
+            cap, src = overrides[key], "teacher"
+        elif c.notes_limit:
             cap, src = c.notes_limit, "notes"
+        elif ce:
+            cap, src = round(ce / bias), "ceiling"
         elif c.classrooms and max(room_max[r] for r in c.classrooms) > 0:
             cap, src = max(room_max[r] for r in c.classrooms), "classroom_hist"
         elif code_max.get(c.code, 0) > 0:
             cap, src = code_max[c.code], "course_hist"
         else:
             cap, src = math.ceil(c.people * 1.15) + 5, "default"
-        c.capacity = max(cap, c.people, 1)
+        if src in ("classroom_hist", "course_hist", "default"):
+            cap = max(cap, c.people)          # 低可信度估計至少不小於實際人數
+        c.capacity = max(int(cap), 1)
         c.capacity_source = src
+    return {"ceiling_bias": round(bias, 3), "ceiling_bias_n": len(ratios)}
+
+
+def long_history(year: int, sem: int, years: int = 5) -> dict[str, list[int]]:
+    """近 years 年（不含當期）同課號+教師的人數序列。"""
+    out: dict[str, list[int]] = defaultdict(list)
+    for y, s in _prev_terms(year, sem, years * 2):
+        try:
+            for x in _raw_courses(y, s):
+                c = from_raw(x)
+                out[course_key(c)].append(c.people)
+        except FileNotFoundError:
+            pass
+    return out
 
 
 @lru_cache(maxsize=8)
@@ -98,8 +169,11 @@ def load_term(year: int, sem: int, history_terms: int = 2) -> tuple[Course, ...]
             hist.append([from_raw(x) for x in _raw_courses(y, s)])
         except FileNotFoundError:
             pass
-    estimate_capacity(courses, hist)
+    CAPACITY_META[(year, sem)] = estimate_capacity(courses, hist, long_history(year, sem))
     return tuple(courses)
+
+
+CAPACITY_META: dict[tuple[int, int], dict] = {}
 
 
 @lru_cache(maxsize=4)

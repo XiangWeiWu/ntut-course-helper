@@ -1,0 +1,816 @@
+{
+ "config": {
+  "year": 115,
+  "sem": 1,
+  "scale": 1.0,
+  "seeds": [
+   0
+  ],
+  "capacity_factor": 1.0,
+  "max_list": 15,
+  "betas": {
+   "interest": 1.0,
+   "grade_match": 0.6,
+   "early": 1.0,
+   "evening": 1.0,
+   "english": 1.0,
+   "general_ed": 0.3,
+   "outside": 0.0,
+   "noise": 1.0
+  },
+  "fcfs": {
+   "median_arrival": 20.0,
+   "arrival_sigma": 1.0,
+   "servers": 8,
+   "service_time": 0.05,
+   "timeout": 30.0,
+   "backoff": 5.0,
+   "think_time": 4.0,
+   "credit_slack": 1.0
+  },
+  "calibrated": false
+ },
+ "aggregate": {
+  "welfare_mean": {
+   "mean": 0.9495,
+   "ci95": [
+    0.9495,
+    0.9495
+   ]
+  },
+  "credit_fill_mean": {
+   "mean": 1.0928,
+   "ci95": [
+    1.0928,
+    1.0928
+   ]
+  },
+  "top1_rate": {
+   "mean": 0.6795,
+   "ci95": [
+    0.6795,
+    0.6795
+   ]
+  },
+  "welfare_gini": {
+   "mean": 0.0476,
+   "ci95": [
+    0.0476,
+    0.0476
+   ]
+  },
+  "arrival_spearman": {
+   "mean": -0.339,
+   "ci95": [
+    -0.339,
+    -0.339
+   ]
+  },
+  "oversubscribed_courses": {
+   "mean": 58.0,
+   "ci95": [
+    58.0,
+    58.0
+   ]
+  },
+  "full_courses": {
+   "mean": 82.0,
+   "ci95": [
+    82.0,
+    82.0
+   ]
+  }
+ },
+ "last_run": {
+  "students": 5414,
+  "welfare_mean": 0.9495,
+  "credit_fill_mean": 1.0928,
+  "top1_rate": 0.6795,
+  "welfare_gini": 0.0476,
+  "arrival_spearman": -0.339,
+  "oversubscribed_courses": 58,
+  "full_courses": 82,
+  "by_grade": {
+   "1": {
+    "welfare": 0.95,
+    "credit_fill": 1.105,
+    "top1": 0.543
+   },
+   "2": {
+    "welfare": 0.957,
+    "credit_fill": 1.115,
+    "top1": 0.59
+   },
+   "3": {
+    "welfare": 0.936,
+    "credit_fill": 1.054,
+    "top1": 0.883
+   },
+   "4": {
+    "welfare": 0.967,
+    "credit_fill": 1.094,
+    "top1": 0.859
+   }
+  },
+  "by_arrival": {
+   "最快20%": {
+    "welfare": 0.994,
+    "credit_fill": 1.131,
+    "top1": 0.76
+   },
+   "20-40%": {
+    "welfare": 0.981,
+    "credit_fill": 1.108,
+    "top1": 0.72
+   },
+   "40-60%": {
+    "welfare": 0.97,
+    "credit_fill": 1.108,
+    "top1": 0.715
+   },
+   "60-80%": {
+    "welfare": 0.935,
+    "credit_fill": 1.084,
+    "top1": 0.672
+   },
+   "最慢20%": {
+    "welfare": 0.867,
+    "credit_fill": 1.033,
+    "top1": 0.53
+   }
+  },
+  "server": {
+   "requests": 11878,
+   "timeouts": 0,
+   "rejections": 159,
+   "wait_mean": 3.169,
+   "wait_p95": 6.436,
+   "wait_max": 6.526,
+   "throughput_rps": 160.0
+  },
+  "queue_timeline": [
+   {
+    "t": 0.0,
+    "requests": 638,
+    "wait": 0.10363205873424948
+   },
+   {
+    "t": 5.0,
+    "requests": 1173,
+    "wait": 1.5653951719739894
+   },
+   {
+    "t": 10.0,
+    "requests": 1111,
+    "wait": 3.7853160076883205
+   },
+   {
+    "t": 15.0,
+    "requests": 950,
+    "wait": 5.134412584264816
+   },
+   {
+    "t": 20.0,
+    "requests": 908,
+    "wait": 6.064408772373915
+   },
+   {
+    "t": 25.0,
+    "requests": 818,
+    "wait": 6.411266531939038
+   },
+   {
+    "t": 30.0,
+    "requests": 758,
+    "wait": 6.335566427005459
+   },
+   {
+    "t": 35.0,
+    "requests": 686,
+    "wait": 5.826818817350236
+   },
+   {
+    "t": 40.0,
+    "requests": 632,
+    "wait": 4.966694586093544
+   },
+   {
+    "t": 45.0,
+    "requests": 593,
+    "wait": 3.74677552439555
+   },
+   {
+    "t": 50.0,
+    "requests": 554,
+    "wait": 2.349366168379272
+   },
+   {
+    "t": 55.0,
+    "requests": 565,
+    "wait": 0.7756627828210774
+   },
+   {
+    "t": 60.0,
+    "requests": 428,
+    "wait": 0.0061677994754649745
+   },
+   {
+    "t": 65.0,
+    "requests": 270,
+    "wait": 2.283588910095794e-05
+   },
+   {
+    "t": 70.0,
+    "requests": 230,
+    "wait": 0.0
+   },
+   {
+    "t": 75.0,
+    "requests": 182,
+    "wait": 0.0
+   },
+   {
+    "t": 80.0,
+    "requests": 137,
+    "wait": 0.0
+   },
+   {
+    "t": 85.0,
+    "requests": 103,
+    "wait": 0.0
+   },
+   {
+    "t": 90.0,
+    "requests": 78,
+    "wait": 0.0
+   },
+   {
+    "t": 95.0,
+    "requests": 92,
+    "wait": 0.0
+   },
+   {
+    "t": 100.0,
+    "requests": 88,
+    "wait": 0.0
+   },
+   {
+    "t": 105.0,
+    "requests": 81,
+    "wait": 0.0
+   },
+   {
+    "t": 110.0,
+    "requests": 59,
+    "wait": 0.0
+   },
+   {
+    "t": 115.0,
+    "requests": 51,
+    "wait": 0.0
+   },
+   {
+    "t": 120.0,
+    "requests": 56,
+    "wait": 0.0
+   },
+   {
+    "t": 125.0,
+    "requests": 39,
+    "wait": 0.0
+   },
+   {
+    "t": 130.0,
+    "requests": 41,
+    "wait": 0.0
+   },
+   {
+    "t": 135.0,
+    "requests": 29,
+    "wait": 0.0
+   },
+   {
+    "t": 140.0,
+    "requests": 41,
+    "wait": 0.0
+   },
+   {
+    "t": 145.0,
+    "requests": 39,
+    "wait": 0.0
+   },
+   {
+    "t": 150.0,
+    "requests": 24,
+    "wait": 0.0
+   },
+   {
+    "t": 155.0,
+    "requests": 10,
+    "wait": 0.0
+   },
+   {
+    "t": 160.0,
+    "requests": 20,
+    "wait": 0.0
+   },
+   {
+    "t": 165.0,
+    "requests": 39,
+    "wait": 0.0
+   },
+   {
+    "t": 170.0,
+    "requests": 13,
+    "wait": 0.0
+   },
+   {
+    "t": 175.0,
+    "requests": 17,
+    "wait": 0.0
+   },
+   {
+    "t": 180.0,
+    "requests": 21,
+    "wait": 0.0
+   },
+   {
+    "t": 185.0,
+    "requests": 7,
+    "wait": 0.0
+   },
+   {
+    "t": 190.0,
+    "requests": 10,
+    "wait": 0.0
+   },
+   {
+    "t": 195.0,
+    "requests": 14,
+    "wait": 0.0
+   },
+   {
+    "t": 200.0,
+    "requests": 12,
+    "wait": 0.0
+   },
+   {
+    "t": 205.0,
+    "requests": 12,
+    "wait": 0.0
+   },
+   {
+    "t": 210.0,
+    "requests": 11,
+    "wait": 0.0
+   },
+   {
+    "t": 215.0,
+    "requests": 10,
+    "wait": 0.0
+   },
+   {
+    "t": 220.0,
+    "requests": 13,
+    "wait": 0.0
+   },
+   {
+    "t": 225.0,
+    "requests": 9,
+    "wait": 0.0
+   },
+   {
+    "t": 230.0,
+    "requests": 11,
+    "wait": 0.0
+   },
+   {
+    "t": 235.0,
+    "requests": 17,
+    "wait": 0.0
+   },
+   {
+    "t": 240.0,
+    "requests": 8,
+    "wait": 0.0
+   },
+   {
+    "t": 245.0,
+    "requests": 7,
+    "wait": 0.0
+   },
+   {
+    "t": 250.0,
+    "requests": 4,
+    "wait": 0.0
+   },
+   {
+    "t": 255.0,
+    "requests": 5,
+    "wait": 0.0
+   },
+   {
+    "t": 260.0,
+    "requests": 5,
+    "wait": 0.0
+   },
+   {
+    "t": 265.0,
+    "requests": 3,
+    "wait": 0.0
+   },
+   {
+    "t": 270.0,
+    "requests": 9,
+    "wait": 0.0
+   },
+   {
+    "t": 275.0,
+    "requests": 3,
+    "wait": 0.0
+   },
+   {
+    "t": 280.0,
+    "requests": 2,
+    "wait": 0.0
+   },
+   {
+    "t": 285.0,
+    "requests": 7,
+    "wait": 0.0
+   },
+   {
+    "t": 290.0,
+    "requests": 7,
+    "wait": 0.0
+   },
+   {
+    "t": 295.0,
+    "requests": 4,
+    "wait": 0.0
+   }
+  ]
+ },
+ "top_oversubscribed": [
+  {
+   "id": "366404",
+   "name": "語文測驗(一)",
+   "capacity": 6,
+   "demand": 64,
+   "enrolled": 6,
+   "oversub": 10.666666666666666,
+   "full_at": 8.515615326003722,
+   "teachers": "劉慧雯",
+   "observed_people": 6,
+   "capacity_source": "classroom_hist"
+  },
+  {
+   "id": "366569",
+   "name": "體育",
+   "capacity": 38,
+   "demand": 221,
+   "enrolled": 38,
+   "oversub": 5.815789473684211,
+   "full_at": 16.02363058515272,
+   "teachers": "蔣憶德",
+   "observed_people": 0,
+   "capacity_source": "course_hist"
+  },
+  {
+   "id": "364900",
+   "name": "軌道機電系統導論",
+   "capacity": 10,
+   "demand": 43,
+   "enrolled": 10,
+   "oversub": 4.3,
+   "full_at": 29.015615326004013,
+   "teachers": "古碧源",
+   "observed_people": 0,
+   "capacity_source": "course_hist"
+  },
+  {
+   "id": "367446",
+   "name": "工程地質學",
+   "capacity": 11,
+   "demand": 44,
+   "enrolled": 11,
+   "oversub": 4.0,
+   "full_at": 17.265615326003847,
+   "teachers": "陳柔妃",
+   "observed_people": 11,
+   "capacity_source": "classroom_hist"
+  },
+  {
+   "id": "362508",
+   "name": "汽車實習(三)",
+   "capacity": 20,
+   "demand": 77,
+   "enrolled": 20,
+   "oversub": 3.85,
+   "full_at": 17.708463992631014,
+   "teachers": "吳建勳",
+   "observed_people": 13,
+   "capacity_source": "notes"
+  },
+  {
+   "id": "361746",
+   "name": "資源處理工程實習(一)",
+   "capacity": 17,
+   "demand": 56,
+   "enrolled": 17,
+   "oversub": 3.2941176470588234,
+   "full_at": 25.406928230385116,
+   "teachers": "李韋皞",
+   "observed_people": 16,
+   "capacity_source": "course_hist"
+  },
+  {
+   "id": "366437",
+   "name": "全民國防教育-防衛動員",
+   "capacity": 53,
+   "demand": 145,
+   "enrolled": 53,
+   "oversub": 2.7358490566037736,
+   "full_at": 35.92363058515272,
+   "teachers": "王郁文",
+   "observed_people": 27,
+   "capacity_source": "classroom_hist"
+  },
+  {
+   "id": "362635",
+   "name": "3D建模與智能製造",
+   "capacity": 31,
+   "demand": 76,
+   "enrolled": 31,
+   "oversub": 2.4516129032258065,
+   "full_at": 22.40846399263108,
+   "teachers": "梁紫祺",
+   "observed_people": 31,
+   "capacity_source": "notes"
+  },
+  {
+   "id": "362535",
+   "name": "西班牙文(一)",
+   "capacity": 30,
+   "demand": 72,
+   "enrolled": 30,
+   "oversub": 2.4,
+   "full_at": 27.306928230385143,
+   "teachers": "陳怡伶",
+   "observed_people": 17,
+   "capacity_source": "classroom_hist"
+  },
+  {
+   "id": "366439",
+   "name": "全民國防教育-防衛動員",
+   "capacity": 50,
+   "demand": 114,
+   "enrolled": 50,
+   "oversub": 2.28,
+   "full_at": 38.55846399263084,
+   "teachers": "李文",
+   "observed_people": 33,
+   "capacity_source": "classroom_hist"
+  },
+  {
+   "id": "362105",
+   "name": "陶藝造型",
+   "capacity": 20,
+   "demand": 45,
+   "enrolled": 20,
+   "oversub": 2.25,
+   "full_at": 42.85692823038459,
+   "teachers": "王怡惠",
+   "observed_people": 20,
+   "capacity_source": "notes"
+  },
+  {
+   "id": "366592",
+   "name": "德文(三)",
+   "capacity": 20,
+   "demand": 45,
+   "enrolled": 20,
+   "oversub": 2.25,
+   "full_at": 28.61321641215791,
+   "teachers": "吳姉雯",
+   "observed_people": 18,
+   "capacity_source": "notes"
+  },
+  {
+   "id": "366441",
+   "name": "全民國防教育-防衛動員",
+   "capacity": 53,
+   "demand": 119,
+   "enrolled": 53,
+   "oversub": 2.2452830188679247,
+   "full_at": 37.85846399263088,
+   "teachers": "李凱誠",
+   "observed_people": 31,
+   "capacity_source": "classroom_hist"
+  },
+  {
+   "id": "362168",
+   "name": "智慧空間互動程式設計",
+   "capacity": 17,
+   "demand": 36,
+   "enrolled": 17,
+   "oversub": 2.1176470588235294,
+   "full_at": 41.11321641215744,
+   "teachers": "陳家興",
+   "observed_people": 17,
+   "capacity_source": "notes"
+  },
+  {
+   "id": "361924",
+   "name": "珠寶設計與實習(一)",
+   "capacity": 30,
+   "demand": 58,
+   "enrolled": 30,
+   "oversub": 1.9333333333333333,
+   "full_at": 38.55721824815691,
+   "teachers": "林小媛",
+   "observed_people": 28,
+   "capacity_source": "notes"
+  },
+  {
+   "id": "361579",
+   "name": "微處理機實習",
+   "capacity": 36,
+   "demand": 68,
+   "enrolled": 36,
+   "oversub": 1.8888888888888888,
+   "full_at": 46.054378570003486,
+   "teachers": "陳世剛",
+   "observed_people": 36,
+   "capacity_source": "notes"
+  },
+  {
+   "id": "361551",
+   "name": "人工智慧物聯網應用",
+   "capacity": 27,
+   "demand": 46,
+   "enrolled": 27,
+   "oversub": 1.7037037037037037,
+   "full_at": 55.33241873217479,
+   "teachers": "鍾孟雲",
+   "observed_people": 27,
+   "capacity_source": "notes"
+  },
+  {
+   "id": "365922",
+   "name": "產業實務專論一",
+   "capacity": 70,
+   "demand": 117,
+   "enrolled": 70,
+   "oversub": 1.6714285714285715,
+   "full_at": 52.63241873217494,
+   "teachers": "陳貞光",
+   "observed_people": 51,
+   "capacity_source": "classroom_hist"
+  },
+  {
+   "id": "362104",
+   "name": "實驗影像與理論",
+   "capacity": 33,
+   "demand": 55,
+   "enrolled": 33,
+   "oversub": 1.6666666666666667,
+   "full_at": 45.98241873217532,
+   "teachers": "吳欣怡",
+   "observed_people": 33,
+   "capacity_source": "notes"
+  },
+  {
+   "id": "363086",
+   "name": "汽車實習(一)",
+   "capacity": 22,
+   "demand": 36,
+   "enrolled": 22,
+   "oversub": 1.6363636363636365,
+   "full_at": 51.107218248156194,
+   "teachers": "吳建勳",
+   "observed_people": 22,
+   "capacity_source": "notes"
+  },
+  {
+   "id": "366613",
+   "name": "永續設計講座",
+   "capacity": 40,
+   "demand": 63,
+   "enrolled": 40,
+   "oversub": 1.575,
+   "full_at": 54.18241873217485,
+   "teachers": "范政揆",
+   "observed_people": 19,
+   "capacity_source": "classroom_hist"
+  },
+  {
+   "id": "361761",
+   "name": "地理資訊系統與實習",
+   "capacity": 40,
+   "demand": 62,
+   "enrolled": 40,
+   "oversub": 1.55,
+   "full_at": 50.506928230384155,
+   "teachers": "張哲豪",
+   "observed_people": 11,
+   "capacity_source": "notes"
+  },
+  {
+   "id": "362533",
+   "name": "日文(一)",
+   "capacity": 30,
+   "demand": 46,
+   "enrolled": 30,
+   "oversub": 1.5333333333333334,
+   "full_at": 42.61561532600345,
+   "teachers": "良本惠莉",
+   "observed_people": 29,
+   "capacity_source": "classroom_hist"
+  },
+  {
+   "id": "361228",
+   "name": "高等類神經網路應用",
+   "capacity": 20,
+   "demand": 30,
+   "enrolled": 20,
+   "oversub": 1.5,
+   "full_at": 45.7543785700035,
+   "teachers": "田方治",
+   "observed_people": 1,
+   "capacity_source": "classroom_hist"
+  },
+  {
+   "id": "361934",
+   "name": "照明學",
+   "capacity": 35,
+   "demand": 52,
+   "enrolled": 35,
+   "oversub": 1.4857142857142858,
+   "full_at": 46.70437857000345,
+   "teachers": "彭睿棠",
+   "observed_people": 24,
+   "capacity_source": "notes"
+  },
+  {
+   "id": "366701",
+   "name": "體育",
+   "capacity": 38,
+   "demand": 56,
+   "enrolled": 38,
+   "oversub": 1.4736842105263157,
+   "full_at": 51.5069282303841,
+   "teachers": "周峻忠、徐志翔",
+   "observed_people": 38,
+   "capacity_source": "course_hist"
+  },
+  {
+   "id": "361482",
+   "name": "自動化控制元件應用",
+   "capacity": 26,
+   "demand": 38,
+   "enrolled": 26,
+   "oversub": 1.4615384615384615,
+   "full_at": 44.72363058515222,
+   "teachers": "曾百由",
+   "observed_people": 17,
+   "capacity_source": "classroom_hist"
+  },
+  {
+   "id": "365992",
+   "name": "文化轉譯策略與跨域創新",
+   "capacity": 32,
+   "demand": 46,
+   "enrolled": 32,
+   "oversub": 1.4375,
+   "full_at": 49.054378570003315,
+   "teachers": "王雅璇",
+   "observed_people": 32,
+   "capacity_source": "notes"
+  },
+  {
+   "id": "366451",
+   "name": "機器人學概論",
+   "capacity": 24,
+   "demand": 34,
+   "enrolled": 24,
+   "oversub": 1.4166666666666667,
+   "full_at": 51.10692823038412,
+   "teachers": "蕭俊祥",
+   "observed_people": 23,
+   "capacity_source": "notes"
+  },
+  {
+   "id": "362747",
+   "name": "台灣社會與文化",
+   "capacity": 53,
+   "demand": 75,
+   "enrolled": 53,
+   "oversub": 1.4150943396226414,
+   "full_at": 44.506928230384496,
+   "teachers": "戴榮冠",
+   "observed_people": 31,
+   "capacity_source": "classroom_hist"
+  }
+ ]
+}

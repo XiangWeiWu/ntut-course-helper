@@ -11,6 +11,10 @@ class Seat:
     mask: int
     enrolled: list[int] = field(default_factory=list)
     full_at: float | None = None
+    dept: str | None = None        # 開課系所（None = 通識/全校）
+    general: bool = False
+    addsigned: int = 0             # 經加簽進入的人數
+    released: int = 0              # 因退選釋出的名額次數
 
 
 @dataclass

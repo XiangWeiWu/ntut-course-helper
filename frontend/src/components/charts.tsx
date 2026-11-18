@@ -43,18 +43,19 @@ export function BarChart({ data, yMax = 1, fmt = (v: number) => v.toFixed(2), un
 }
 
 /** 折線圖（≤3 系列），十字準線 + tooltip；x 為數值 */
-export function LineChart({ series, xLabel, yLabel, xFmt = String, yFmt = (v: number) => v.toFixed(2), logX = false }:
+export function LineChart({ series, xLabel, yLabel, xFmt = String, yFmt = (v: number) => v.toFixed(2), logX = false, tight = false }:
   { series: { name: string; color: string; points: { x: number; y: number }[] }[]; xLabel: string; yLabel: string;
-    xFmt?: (v: number) => string; yFmt?: (v: number) => string; logX?: boolean }) {
+    xFmt?: (v: number) => string; yFmt?: (v: number) => string; logX?: boolean; tight?: boolean }) {
   const t = useTip();
   const [hx, setHx] = useState<number | null>(null);
   const all = series.flatMap((s) => s.points);
   const xs = [...new Set(all.map((p) => p.x))].sort((a, b) => a - b);
   const tx = (v: number) => (logX ? Math.log(v) : v);
   const x0 = tx(xs[0]), x1 = tx(xs[xs.length - 1]);
-  let y0 = Math.min(0, ...all.map((p) => p.y)), y1 = Math.max(...all.map((p) => p.y));
+  const lo = Math.min(...all.map((p) => p.y)), hi = Math.max(...all.map((p) => p.y));
+  let y0 = tight ? lo - (hi - lo || Math.abs(hi) * 0.01 || 1) * 0.5 : Math.min(0, lo), y1 = hi;
   if (y1 === y0) y1 = y0 + 1;
-  y1 += (y1 - y0) * 0.08;
+  y1 += (y1 - y0) * (tight ? 0.3 : 0.08);
   const M = { l: 44, r: 12, t: 26, b: 34 };
   const iw = W - M.l - M.r, ih = H - M.t - M.b;
   const X = (v: number) => M.l + ((tx(v) - x0) / (x1 - x0 || 1)) * iw;

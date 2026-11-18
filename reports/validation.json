@@ -1,0 +1,24 @@
+{
+ "train": [
+  114,
+  1
+ ],
+ "test": [
+  115,
+  1
+ ],
+ "n_courses": 451,
+ "n_seen_before": 346,
+ "sim_all": {
+  "MAE": 21.17,
+  "spearman": 0.618
+ },
+ "sim_seen": {
+  "MAE": 17.29,
+  "spearman": 0.733
+ },
+ "baseline_seen": {
+  "MAE": 10.19,
+  "spearman": 0.797
+ }
+}

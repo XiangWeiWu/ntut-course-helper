@@ -41,7 +41,9 @@ def student_table(out: Outcome, students) -> pd.DataFrame:
             "ideal_credit": ci, "got_credit": cg,
             "credit_fill": min(cg / ci, 1.0) if ci else 1.0,
             "welfare": min(ug / ui, 1.0) if ui else 1.0,
-            "top1": bool(ideal) and ideal[0] in got,
+            "top1": (ideal[0] in got) if ideal else np.nan,
+            "wants_other": any(not out.seats[c].general and out.seats[c].dept not in (None, s.dept) for c in ideal),
+            "visits": out.log.get("visits_by_student", {}).get(s.sid, 1),
         })
     return pd.DataFrame(rows)
 
@@ -53,11 +55,12 @@ def course_table(out: Outcome, names: dict[str, str]) -> pd.DataFrame:
         d = demand.get(cid, 0)
         rows.append({"id": cid, "name": names.get(cid, cid), "capacity": s.capacity,
                      "demand": d, "enrolled": len(s.enrolled), "oversub": d / s.capacity if s.capacity else 0,
-                     "full_at": s.full_at})
+                     "full_at": s.full_at, "addsigned": s.addsigned, "released": s.released})
     return pd.DataFrame(rows).sort_values("oversub", ascending=False)
 
 
 def summarize(st: pd.DataFrame, ct: pd.DataFrame, log: dict) -> dict:
+    st = st.assign(top1=st.top1.astype(float))
     by_grade = st.groupby("grade")[["welfare", "credit_fill", "top1"]].mean().round(3)
     q = pd.qcut(st["arrival"].rank(method="first"), 5, labels=["最快20%", "20-40%", "40-60%", "60-80%", "最慢20%"])
     by_arrival = st.groupby(q, observed=True)[["welfare", "credit_fill", "top1"]].mean().round(3)
@@ -65,22 +68,28 @@ def summarize(st: pd.DataFrame, ct: pd.DataFrame, log: dict) -> dict:
         "students": int(len(st)),
         "welfare_mean": round(float(st.welfare.mean()), 4),
         "credit_fill_mean": round(float(st.credit_fill.mean()), 4),
-        "top1_rate": round(float(st.top1.mean()), 4),
+        "top1_rate": round(float(st.top1.dropna().astype(float).mean()), 4),
         "welfare_gini": round(gini(st.welfare.values), 4),
         "arrival_spearman": round(float(st[["arrival", "welfare"]].corr("spearman").iloc[0, 1]), 4),
         "oversubscribed_courses": int((ct.oversub > 1).sum()),
+        "welfare_other_dept": round(float(st[st.wants_other].welfare.mean()), 4) if st.wants_other.any() else 1.0,
         "full_courses": int(ct.full_at.notna().sum()),
         "by_grade": {int(k): v for k, v in by_grade.to_dict("index").items()},
         "by_arrival": {str(k): v for k, v in by_arrival.to_dict("index").items()},
-        "server": {k: (round(v, 3) if isinstance(v, float) else v) for k, v in log.items() if k != "queue_timeline"},
+        "by_other_dept_demand": {("想修他系課" if k else "只修本系/通識"): v for k, v in
+                                 st.groupby("wants_other")[["welfare", "credit_fill", "top1"]].mean().round(3).to_dict("index").items()},
+        "visits_p50_p90": [float(st.visits.median()), float(st.visits.quantile(0.9))],
+        "server": {k: (round(v, 3) if isinstance(v, float) else v) for k, v in log.items()
+                   if not isinstance(v, (list, dict))},
         "queue_timeline": log.get("queue_timeline", []),
+        "timeline": log.get("timeline", []),
     }
 
 
 def aggregate(runs: list[dict]) -> dict:
     """多個 seed 的平均與 95% 區間（百分位數法）。"""
     keys = ["welfare_mean", "credit_fill_mean", "top1_rate", "welfare_gini", "arrival_spearman",
-            "oversubscribed_courses", "full_courses"]
+            "oversubscribed_courses", "full_courses", "welfare_other_dept"]
     out = {}
     for k in keys:
         v = np.array([r[k] for r in runs], float)

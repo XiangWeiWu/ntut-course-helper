@@ -10,6 +10,7 @@ from backend.ingest.load import load_term
 from .agents import UtilityAgent
 from .mechanisms.base import Seat
 from .mechanisms.fcfs import FCFSConfig, run_fcfs
+from .mechanisms.ntut import NTUTConfig, run_ntut
 from .metrics import aggregate, course_table, student_table, summarize
 from .population import generate
 from .utility import Betas, elective_pool
@@ -25,6 +26,8 @@ class SimConfig:
     max_list: int = 15
     betas: Betas = field(default_factory=Betas)
     fcfs: FCFSConfig = field(default_factory=FCFSConfig)
+    mechanism: str = "ntut"            # "ntut"（北科兩週制度）| "fcfs"（純搶課）
+    ntut: NTUTConfig = field(default_factory=NTUTConfig)
     alpha: dict[str, float] | None = None   # 校準後的課程吸引力
 
 
@@ -33,7 +36,8 @@ def run_once(courses: list[Course], cfg: SimConfig, seed: int, return_tables=Fal
     by_id = {c.id: c for c in courses}
     pool = elective_pool(courses, cfg.alpha)
     students = generate(courses, rng, cfg.scale)
-    seats = {f.id: Seat(f.id, max(1, round(by_id[f.id].capacity * cfg.capacity_factor)), f.credit, f.mask)
+    seats = {f.id: Seat(f.id, max(1, round(by_id[f.id].capacity * cfg.capacity_factor)), f.credit, f.mask,
+                        dept=f.dept, general=f.general)
              for f in pool.feats}
     base_masks, budgets, wishlists = {}, {}, {}
     for s in students:
@@ -43,7 +47,10 @@ def run_once(courses: list[Course], cfg: SimConfig, seed: int, return_tables=Fal
         base_masks[s.sid] = m
         budgets[s.sid] = max(0.0, s.credit_target - sum(by_id[c].credit for c in s.required))
         wishlists[s.sid] = UtilityAgent(s, pool, cfg.betas, rng, cfg.max_list).wishlist()
-    out = run_fcfs(students, wishlists, seats, base_masks, budgets, rng, cfg.fcfs)
+    if cfg.mechanism == "ntut":
+        out = run_ntut(students, wishlists, seats, base_masks, budgets, rng, cfg.ntut)
+    else:
+        out = run_fcfs(students, wishlists, seats, base_masks, budgets, rng, cfg.fcfs)
     st = student_table(out, students)
     ct = course_table(out, {c.id: c.name for c in courses})
     summ = summarize(st, ct, out.log)
