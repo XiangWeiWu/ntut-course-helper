@@ -1,0 +1,8 @@
+.venv/
+data/raw/
+data/processed/
+node_modules/
+dist/
+__pycache__/
+*.pyc
+reports/
