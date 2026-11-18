@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { get, post, slotKeys, timeText, type Course } from "../api";
-import { estimateElectives, plan, type Std } from "../grad";
+import { MAX_CREDITS, estimateElectives, minCredits, plan, type Std } from "../grad";
 import Timetable from "../components/Timetable";
 import LoadSummary from "../components/LoadSummary";
 import { loadExcess } from "../load";
@@ -10,7 +10,7 @@ const COHORTS = [115, 114, 113, 112];
 type StdResp = { cohort: number; deptMap: Record<string, string>; standards: Record<string, Std> };
 type Cls = { name: string; dept: string; grade: number; required: string[] };
 type Sol = { courses: Course[]; credits: number; score: number; optimal: boolean };
-type Saved = { cohort: number; key: string; homeClass: string; failed: string[]; pro: number | null; free: number | null; maxPerSem: number };
+type Saved = { cohort: number; key: string; homeClass: string; failed: string[]; pro: number | null; free: number | null; overload: number };
 
 const LS = "ntut-grad-plan";
 const loadSaved = (): Partial<Saved> => { try { return JSON.parse(localStorage.getItem(LS) || "{}"); } catch { return {}; } };
@@ -25,7 +25,8 @@ export default function Graduation() {
   const [failed, setFailed] = useState<Set<string>>(new Set(saved.failed ?? []));
   const [pro, setPro] = useState<number | null>(saved.pro ?? null);
   const [free, setFree] = useState<number | null>(saved.free ?? null);
-  const [maxPerSem, setMax] = useState(saved.maxPerSem ?? 25);
+  const [overload, setOverload] = useState(saved.overload ?? 0);   // 可超修的學分（0＝不超修）
+  const maxPerSem = MAX_CREDITS + overload;
   const [courses, setCourses] = useState<Course[]>([]);
   const [sols, setSols] = useState<Sol[] | null>(null);
   const [pick, setPick] = useState(0);              // 目前顯示第幾個方案
@@ -38,15 +39,15 @@ export default function Graduation() {
   useEffect(() => { get<Cls[]>("/api/classes").then(setClasses).catch(() => {}); get<Course[]>("/api/courses?limit=10000").then(setCourses).catch(() => {}); }, []);
   useEffect(() => { setData(null); get<StdResp>(`/api/grad/standards?cohort=${cohort}`).then(setData).catch((e) => setErr(String(e))); }, [cohort]);
   useEffect(() => {
-    try { localStorage.setItem(LS, JSON.stringify({ cohort, key, homeClass, failed: [...failed], pro, free, maxPerSem })); } catch { /* 私密瀏覽 */ }
-  }, [cohort, key, homeClass, failed, pro, free, maxPerSem]);
+    try { localStorage.setItem(LS, JSON.stringify({ cohort, key, homeClass, failed: [...failed], pro, free, overload })); } catch { /* 私密瀏覽 */ }
+  }, [cohort, key, homeClass, failed, pro, free, overload]);
 
   const std = data?.standards[key];
   const grade = CUR_YEAR - cohort + 1;
   const est = std ? estimateElectives(std, grade, CUR_SEM) : { pro: 0, free: 0 };
   const proV = pro ?? est.pro, freeV = free ?? est.free;
-  const p = useMemo(() => std ? plan(std, { cohort, currentYear: CUR_YEAR, currentSem: CUR_SEM, failed, proEarned: proV, freeEarned: freeV, maxPerSem }) : null,
-    [std, cohort, failed, proV, freeV, maxPerSem]);
+  const p = useMemo(() => std ? plan(std, { cohort, currentYear: CUR_YEAR, currentSem: CUR_SEM, failed, proEarned: proV, freeEarned: freeV, overload }) : null,
+    [std, cohort, failed, proV, freeV, overload]);
 
   // 班級：同年級；系所全名與標準相符者排前面
   const matches = (d: string) => { const full = data?.deptMap[d]; return !!full && key.startsWith(full); };
@@ -89,7 +90,7 @@ export default function Graduation() {
         ids.forEach((id) => (favorites[id] = 10));
         if (ids.length) groups.push(ids);
       }
-      const minC = Math.min(cur.requiredCredits, maxPerSem);
+      const minC = Math.min(Math.max(cur.requiredCredits, minCredits(cur.grade)), maxPerSem);   // 學則下限
       setPick(0);
       setSols(await post<Sol[]>("/api/schedule/solve", { home_class: homeClass || null, favorites, groups, min_credit: minC, max_credit: maxPerSem, k: 3,
         balance, max_consec: maxConsec, max_daily: maxDaily }));
@@ -110,10 +111,11 @@ export default function Graduation() {
           <label className="muted">入學年 <select value={cohort} onChange={(e) => { setCohort(+e.target.value); setFailed(new Set()); setPro(null); setFree(null); setSols(null); }}>
             {COHORTS.map((y) => <option key={y} value={y}>{y} 學年（本學期大{"一二三四"[CUR_YEAR - y]}）</option>)}</select></label>
           <label className="muted">課程標準 <select value={key} onChange={(e) => { setKey(e.target.value); setFailed(new Set()); setPro(null); setFree(null); setSols(null); }}>
-            {Object.keys(data?.standards ?? { [key]: 0 }).map((k) => <option key={k} value={k}>{k}</option>)}</select></label>
+            {Object.keys(data?.standards ?? { [key]: 0 }).filter((k) => !k.startsWith("通識中心")).map((k) => <option key={k} value={k}>{k}</option>)}</select></label>
           <label className="muted">班級 <select value={homeClass} onChange={(e) => setHomeClass(e.target.value)}>
             {gradeClasses.map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}</select></label>
-          <label className="muted">每學期上限 <input type="number" value={maxPerSem} onChange={(e) => setMax(+e.target.value)} style={{ width: 60 }} /> 學分</label>
+          <span className="muted">每學期 {minCredits(grade)}–{MAX_CREDITS} 學分（學則第 15 條；大四下限 9）</span>
+          <label className="muted">可超修 <input type="number" min={0} max={6} value={overload} onChange={(e) => setOverload(Math.max(0, +e.target.value))} style={{ width: 48 }} /> 學分</label>
         </div>
         {err && <p className="err">{err}</p>}
         {!std && !err && <p className="muted">載入課程標準中…</p>}
@@ -161,9 +163,11 @@ export default function Graduation() {
               <td className="muted">{s.required.map((c) => c.name).join("、") || "—"}</td>
               <td>{s.retakes.length ? s.retakes.map((c) => c.name).join("、") : <span className="muted">—</span>}</td>
               <td className="num">{s.requiredCredits}</td><td className="num">{s.electiveCredits}</td>
-              <td className="num">{s.over ? <span className="err">{s.total}</span> : s.total}</td></tr>)}</tbody></table></div>
+              <td className="num">{s.over ? <span className="err">{s.total}</span> : s.total}
+                {s.overload && !s.over ? <div className="muted">需申請超修</div> : null}
+                {s.topUp ? <div className="muted">含補足下限 {s.topUp}</div> : null}</td></tr>)}</tbody></table></div>
           <p className="muted">假設：被當的必修只在與課程標準相同的上／下學期開課；專業選修超出要求的學分可算入自由選修；
-            選修平均分配且每學期不超過上限。實際規定（如暑修、擋修、抵免）請以系上公告為準。</p>
+            選修平均分配；每學期學分依學則（上限 25、下限 16，大四 9），不足下限時自動補足。實際規定（如暑修、擋修、抵免）請以系上公告為準。</p>
         </section>
       </div>}
 
@@ -192,7 +196,7 @@ export default function Graduation() {
         <p className="muted" style={{ marginTop: 0 }}>依據：連續上課沒有休息會造成認知疲勞，且對學習較弱的學生影響最大（Williams &amp; Shapiro, 2018）；休息能恢復表現、對低成就學生效果較大（Sievertsen 等, 2016, PNAS）。</p>
         <div className="row">
           <button className="btn primary" onClick={schedule} disabled={busy || !homeClass}>{busy ? "排課中…" : "排出本學期課表（重修優先）"}</button>
-          <span className="muted">會放入 {homeClass} 的必修、從各班挑不衝堂的重修時段，再補選修到 {maxPerSem} 學分以內。</span>
+          <span className="muted">會放入 {homeClass} 的必修、從各班挑不衝堂的重修時段，再補選修到 {cur.min}–{maxPerSem} 學分。</span>
         </div>
         {sols && sols.length > 0 && (() => {
           const i = Math.min(pick, sols.length - 1), s = sols[i], miss = missingRetakes(s);

@@ -9,8 +9,13 @@
  * - 本學期為 115 學年第 1 學期；第 g 年級＝115−入學年+1。
  * - 被當的必修只在「與課程標準相同的學期別」（上或下學期）開課 → 排在剩餘學期中最早的同學期別。
  * - 專業選修超出要求的學分，可算入跨域及自由選修。
- * - 選修學分平均分配到剩餘學期，每學期總學分不超過上限（預設 25）。
+ * - 選修學分平均分配到剩餘學期。
+ * - 每學期學分依學則第 15 條（寫死）：上限 25；下限 大一～大三 16、大四 9。
+ *   可超修（使用者輸入可多修的學分，例如前 20% 可加選 1–2 門）；超過 25 的學期會標示「需申請超修」。
+ *   低於下限時自動補選修到下限（這些學分可能超過畢業所需，算自由選修）。
  */
+export const MAX_CREDITS = 25;
+export const minCredits = (grade: number) => (grade >= 4 ? 9 : 16);
 export type StdCourse = { year: string; sem: string; type: string; name: string; credit: string };
 export type Std = { credits: Record<string, string>; courses: StdCourse[] };
 
@@ -26,9 +31,13 @@ const TOTAL = "最低畢業學分數";
 export type Item = StdCourse & { key: string; credits: number };
 export type Term = { year: number; sem: number; label: string };
 export type Inputs = { cohort: number; currentYear: number; currentSem: number; failed: Set<string>;
-  proEarned: number; freeEarned: number; maxPerSem: number };
-export type SemPlan = { term: Term; required: Item[]; retakes: Item[]; requiredCredits: number;
-  electiveCredits: number; total: number; over: boolean };
+  proEarned: number; freeEarned: number; overload: number };
+export type SemPlan = { term: Term; grade: number; required: Item[]; retakes: Item[]; requiredCredits: number;
+  electiveCredits: number; total: number; min: number; max: number;
+  over: boolean;        // 光必修＋重修就超過 上限＋可超修 → 不可行
+  overload: boolean;    // 合計超過 25，需申請超修
+  topUp: number;        // 為了達到最低學分而多補的選修學分
+};
 export type Plan = {
   grade: number; past: Item[]; categories: { name: string; need: number; earned: number; remaining: number }[];
   semesters: SemPlan[]; electiveNeeded: number; electiveCapacity: number; onTime: boolean;
@@ -75,7 +84,8 @@ export function plan(std: Std, x: Inputs): Plan {
   const sems: SemPlan[] = terms.map((t) => {
     const g = grade + (t.year - x.currentYear);
     const required = items.filter((c) => +c.year === g && +c.sem === t.sem);
-    return { term: t, required, retakes: [], requiredCredits: 0, electiveCredits: 0, total: 0, over: false };
+    return { term: t, grade: g, required, retakes: [], requiredCredits: 0, electiveCredits: 0, total: 0,
+      min: minCredits(g), max: MAX_CREDITS + x.overload, over: false, overload: false, topUp: 0 };
   });
   for (const c of past.filter((c) => x.failed.has(c.key))) {
     const s = sems.find((s) => s.term.sem === +c.sem);
@@ -104,7 +114,7 @@ export function plan(std: Std, x: Inputs): Plan {
 
   // 選修平均分配（注水法）：每學期最多填到上限
   let left = electiveNeeded;
-  const cap = sems.map((s) => Math.max(0, x.maxPerSem - s.requiredCredits));
+  const cap = sems.map((s) => Math.max(0, s.max - s.requiredCredits));
   const electiveCapacity = cap.reduce((a, b) => a + b, 0);
   const alloc = sems.map(() => 0);
   while (left > 1e-9) {
@@ -118,12 +128,15 @@ export function plan(std: Std, x: Inputs): Plan {
     }
   }
   sems.forEach((s, i) => {
-    s.electiveCredits = alloc[i];
-    s.total = s.requiredCredits + alloc[i];
-    s.over = s.requiredCredits > x.maxPerSem;
-    if (s.over) warnings.push(`${s.term.label} 光必修與重修就有 ${s.requiredCredits} 學分，超過上限 ${x.maxPerSem}，需申請超修或延後部分課程。`);
+    s.topUp = Math.max(0, s.min - s.requiredCredits - alloc[i]);
+    s.electiveCredits = alloc[i] + s.topUp;
+    s.total = s.requiredCredits + s.electiveCredits;
+    s.over = s.requiredCredits > s.max;
+    s.overload = s.total > MAX_CREDITS;
+    if (s.over) warnings.push(`${s.term.label} 光必修與重修就有 ${s.requiredCredits} 學分，超過上限 ${MAX_CREDITS}${x.overload ? `＋超修 ${x.overload}` : ""}，需延後部分課程。`);
+    else if (s.overload) warnings.push(`${s.term.label} 合計 ${s.total} 學分，超過 ${MAX_CREDITS}，需申請超修。`);
   });
   const onTime = left <= 1e-9 && !sems.some((s) => s.over) && !warnings.some((w) => w.includes("沒有同學期別"));
-  if (left > 1e-9) warnings.push(`剩餘學期的可用學分不足，還差約 ${Math.ceil(left)} 學分 → 依目前上限可能需要延畢（可考慮暑修、超修）。`);
+  if (left > 1e-9) warnings.push(`剩餘學期的可用學分不足，還差約 ${Math.ceil(left)} 學分 → 依學分上限可能需要延畢（可考慮暑修、超修）。`);
   return { grade, past, categories, semesters: sems, electiveNeeded, electiveCapacity, onTime, totalNeed, totalEarned, warnings };
 }
