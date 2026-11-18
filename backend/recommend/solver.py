@@ -14,7 +14,8 @@ from backend.domain.timeslots import slots_of
 
 
 def solve(courses: list[Course], scores: dict[str, float], min_credit: float = 0, max_credit: float = 25,
-          must: list[str] = (), k: int = 3, time_limit: float = 5.0) -> list[dict]:
+          must: list[str] = (), k: int = 3, time_limit: float = 5.0, groups: list[list[str]] = ()) -> list[dict]:
+    """groups：每組課號至多選一門（例：被當的「學院指定向度」可用任一門同向度博雅課重修，但只需一門）。"""
     cand = [c for c in courses if c.mask and (c.id in scores or c.id in must)]
     m = cp_model.CpModel()
     x = {c.id: m.NewBoolVar(c.id) for c in cand}
@@ -34,6 +35,10 @@ def solve(courses: list[Course], scores: dict[str, float], min_credit: float = 0
     for cid in must:
         if cid in x:
             m.Add(x[cid] == 1)
+    for grp in groups:
+        vs = [x[i] for i in grp if i in x]
+        if len(vs) > 1:
+            m.AddAtMostOne(vs)
     cr = sum(int(round(c.credit * 10)) * x[c.id] for c in cand)
     m.Add(cr >= int(min_credit * 10))
     m.Add(cr <= int(max_credit * 10))

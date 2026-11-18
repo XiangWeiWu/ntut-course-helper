@@ -259,3 +259,12 @@ def test_existing_overlaps_are_kept_but_no_new_ones():
     assert r["after"]["retake_pairs"] == 0
     moved = {m["name"]: m["to"] for m in r["moves"]}
     assert "寫作" in moved and "一12" not in moved["寫作"]          # 不能搬到兩個口語班的時段
+
+
+def test_solver_groups_at_most_one():
+    """重修組：同向度的不同博雅課只需選一門。"""
+    a = from_raw(_raw("A", 30)); a.name = "博雅甲"; a.mask = mask_from_time({"mon": ["1"]})
+    b = from_raw(_raw("B", 30)); b.name = "博雅乙"; b.mask = mask_from_time({"tue": ["1"]})
+    c = from_raw(_raw("C", 30)); c.name = "博雅丙"; c.mask = mask_from_time({"wed": ["1"]})
+    sols = solve([a, b, c], {"A": 10, "B": 9, "C": 8}, 0, 20, k=1, groups=[["A", "B", "C"]])
+    assert sols[0]["courses"] == ["A"]

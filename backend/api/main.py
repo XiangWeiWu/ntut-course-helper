@@ -103,6 +103,7 @@ class SolveReq(BaseModel):
     avoid_early: bool = False
     avoid_evening: bool = True
     k: int = 3
+    groups: list[list[str]] = Field(default_factory=list)   # 每組至多選一門
 
 
 @app.post("/api/schedule/solve")
@@ -121,9 +122,9 @@ def schedule_solve(r: SolveReq):
                     mask |= t[cid].mask
     scores = {}
     for c in t.values():
-        if c.id in r.exclude or not c.mask or c.credit <= 0 or c.people == 0:
-            continue
         s = r.favorites.get(c.id)
+        if c.id in r.exclude or not c.mask or c.people == 0 or (c.credit <= 0 and s is None):
+            continue
         if s is None:
             if c.required:
                 continue
@@ -140,8 +141,8 @@ def schedule_solve(r: SolveReq):
             s -= 0.4 * sum(p == "1" for _, p in sl)
         if r.avoid_evening:
             s -= 0.4 * sum(p in "ABCD" for _, p in sl)
-        scores[c.id] = s * c.credit
-    sols = solve(list(t.values()), scores, r.min_credit, r.max_credit, must, r.k)
+        scores[c.id] = s * max(c.credit, 1)     # 0 學分的收藏課（如體育重修）仍有分數
+    sols = solve(list(t.values()), scores, r.min_credit, r.max_credit, must, r.k, groups=r.groups)
     if not sols:
         raise HTTPException(422, "找不到可行課表（必修衝堂或學分範圍無法滿足）")
     for s in sols:
@@ -298,6 +299,18 @@ def timetable(dept: str, scenario: str = Query("A", pattern="^[AB]$"), recompute
     if recompute or key not in _tt_cache:
         _tt_cache[key] = clean(report(dept, list(term(115, 1).values()), scenario, 20.0))
     return _tt_cache[key]
+
+
+@app.get("/api/grad/standards")
+def grad_standards(cohort: int = Query(..., ge=100, le=130)):
+    """某一屆（入學年）四技課程標準＋系所簡稱對照，供學生端畢業規劃使用。"""
+    from backend.timetable.check import dept_fullnames, standard
+    std = standard(cohort)
+    if not std:
+        raise HTTPException(404, f"查無 {cohort} 學年入學的課程標準")
+    keep = lambda d: {"credits": d["credits"], "courses": [
+        {k: c[k] for k in ("year", "sem", "type", "name", "credit")} for c in d["courses"]]}
+    return {"cohort": cohort, "deptMap": dept_fullnames(), "standards": {k: keep(v) for k, v in std.items()}}
 
 
 @app.get("/api/standards")

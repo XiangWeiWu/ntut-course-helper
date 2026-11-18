@@ -60,8 +60,8 @@ async function scheduleSolve(r: any) {
   const fav: Record<string, number> = r.favorites ?? {};
   const scores = new Map<string, number>();
   for (const c of all) {
-    if ((r.exclude ?? []).includes(c.id) || !c.slots.length || c.credit <= 0 || c.people === 0) continue;
     let s = fav[c.id];
+    if ((r.exclude ?? []).includes(c.id) || !c.slots.length || c.people === 0 || (c.credit <= 0 && s === undefined)) continue;
     if (s === undefined) {
       if (c.required) continue;
       if (dept && c.dept === dept && (!grade || c.grades.includes(grade))) s = 0.6;
@@ -71,10 +71,12 @@ async function scheduleSolve(r: any) {
     const periods = c.slots.map((x) => x.split("-")[1]);
     if (r.avoid_early) s -= 0.4 * periods.filter((p) => p === "1").length;
     if (r.avoid_evening ?? true) s -= 0.4 * periods.filter((p) => "ABCD".includes(p)).length;
-    scores.set(c.id, s * c.credit);
+    scores.set(c.id, s * Math.max(c.credit, 1));   // 與後端一致：0 學分的收藏課仍有分數
   }
+  const groupOf = new Map<string, string>();
+  (r.groups ?? []).forEach((g: string[], i: number) => g.forEach((id) => groupOf.set(id, `g${i}`)));
   const cands: Cand[] = all.filter((c) => c.slots.length && (scores.has(c.id) || must.includes(c.id)))
-    .map((c) => ({ id: c.id, name: c.name, credit: c.credit, slots: c.slots, score: scores.get(c.id) ?? 0 }));
+    .map((c) => ({ id: c.id, name: c.name, credit: c.credit, slots: c.slots, score: scores.get(c.id) ?? 0, group: groupOf.get(c.id) }));
   const sols = solve(cands, must, r.min_credit ?? 16, r.max_credit ?? 25, r.k ?? 3);
   if (!sols.length) throw new Error("找不到可行課表（必修衝堂或學分範圍無法滿足）");
   return sols.map((s) => ({ ...s, courses: s.ids.map((i) => withReports(byId.get(i)!)) }));
@@ -136,6 +138,7 @@ export async function staticRequest(method: "GET" | "POST", url: string, body?: 
     case "GET /api/teacher/demand": return teacherDemand(p);
     case "GET /api/dept/conflicts": return deptConflicts(p);
     case "GET /api/sim/report": return load("sim_report.json");
+    case "GET /api/grad/standards": return load(`standards_${p.get("cohort")}.json`);
     case "POST /api/sim/run": return simRun(body);
     case "POST /api/capacity": {
       saveReport(body.course_id, body.capacity);

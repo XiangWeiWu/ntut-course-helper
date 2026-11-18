@@ -81,6 +81,13 @@ def export_timetable():
     print("timetable", len(list(dst.glob("*.json"))), "files")
 
 
+def export_standards(cohorts=(112, 113, 114, 115)):
+    """各屆四技課程標準（學生端畢業規劃用），每屆一個檔案，用到時才載入。"""
+    from backend.api.main import grad_standards
+    for y in cohorts:
+        dump(f"standards_{y}.json", grad_standards(y))
+
+
 def scenario_key(mech, prio, pa, capf):
     return f"{mech}|{prio}|{pa}|{capf}"
 
@@ -109,5 +116,6 @@ if __name__ == "__main__":
     export_courses(115, 1)
     export_reports(115, 1)
     export_timetable()
+    export_standards()
     if not a.no_sim:
         export_scenarios(115, 1)

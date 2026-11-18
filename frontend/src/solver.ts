@@ -4,7 +4,7 @@
  *   最大化 Σ score；限制：不衝堂、同名課至多一門（必選課豁免，且其課名不得再加選）、學分介於 [min,max]、必選課一定排入。
  * 上界：目前分數 + 剩餘正分課程依「分數/學分」排序的分數背包鬆弛（fractional knapsack），保證可剪枝而不漏解。
  */
-export type Cand = { id: string; name: string; credit: number; slots: string[]; score: number };
+export type Cand = { id: string; name: string; credit: number; slots: string[]; score: number; group?: string };
 export type Sol = { ids: string[]; credits: number; score: number; optimal: boolean };
 
 export function solve(cands: Cand[], must: string[], minC: number, maxC: number, k = 3, nodeLimit = 3_000_000): Sol[] {
@@ -14,12 +14,14 @@ export function solve(cands: Cand[], must: string[], minC: number, maxC: number,
   const items = cands.map((c) => ({ ...c, cr: C(c.credit), sl: c.slots.map(sid) }));
   const occ = new Uint8Array(200);
   const names = new Set<string>();
+  const groups = new Set<string>();          // 每組至多一門（與後端 groups 參數一致）
   let credit = 0, base = 0;
   const chosen: string[] = [];
   const mustSet = new Set(must);
   for (const it of items.filter((i) => mustSet.has(i.id))) {
     if (it.sl.some((s) => occ[s])) return [];      // 必選課互相衝堂 → 無解（同名必選課豁免，與後端一致）
-    it.sl.forEach((s) => (occ[s] = 1)); names.add(it.name); credit += it.cr; base += it.score; chosen.push(it.id);
+    it.sl.forEach((s) => (occ[s] = 1)); names.add(it.name); if (it.group) groups.add(it.group);
+    credit += it.cr; base += it.score; chosen.push(it.id);
   }
   if (credit > C(maxC)) return [];
   const rest = items.filter((i) => !mustSet.has(i.id))
@@ -49,10 +51,12 @@ export function solve(cands: Cand[], must: string[], minC: number, maxC: number,
     if (score + bound(i, C(maxC) - credit) <= kth() + 1e-9) return;
     if (i === n) { record(score); return; }
     const it = rest[i];
-    if (credit + it.cr <= C(maxC) && !names.has(it.name) && !it.sl.some((s) => occ[s])) {
-      it.sl.forEach((s) => (occ[s] = 1)); names.add(it.name); credit += it.cr; chosen.push(it.id);
+    if (credit + it.cr <= C(maxC) && !names.has(it.name) && !(it.group && groups.has(it.group)) && !it.sl.some((s) => occ[s])) {
+      it.sl.forEach((s) => (occ[s] = 1)); names.add(it.name); if (it.group) groups.add(it.group);
+      credit += it.cr; chosen.push(it.id);
       dfs(i + 1, score + it.score);
-      chosen.pop(); credit -= it.cr; names.delete(it.name); it.sl.forEach((s) => (occ[s] = 0));
+      chosen.pop(); credit -= it.cr; names.delete(it.name); if (it.group) groups.delete(it.group);
+      it.sl.forEach((s) => (occ[s] = 0));
     }
     dfs(i + 1, score);
   };
